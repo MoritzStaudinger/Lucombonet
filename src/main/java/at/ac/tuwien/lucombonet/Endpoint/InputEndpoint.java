@@ -32,13 +32,15 @@ public class InputEndpoint {
         }
     }
 
-    @GetMapping("/search")
-    public String search(@RequestParam String searchstring) {
+    @GetMapping("/searchLucene")
+    public String search(@RequestParam String searchstring, @RequestParam Integer resultnumber) {
         try {
-            return fileInputService.searchLucene(searchstring);
+            return fileInputService.searchLucene(searchstring, resultnumber);
         } catch(IOException e) {
+            e.printStackTrace();
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         } catch(ParseException e) {
+            e.printStackTrace();
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
 

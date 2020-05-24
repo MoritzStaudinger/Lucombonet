@@ -14,6 +14,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
@@ -21,6 +22,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.similarities.BM25Similarity;
+import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.springframework.stereotype.Service;
@@ -43,7 +45,7 @@ public class FileInputService implements IFileInputService {
 
     public FileInputService() throws IOException {
         indexDirectory = FSDirectory.open(Paths.get("")); //Path to directory
-        analyzer = new GermanAnalyzer(); //analyzer = new StandardAnalyzer(new BufferedReader(new FileReader("stopwords-de.txt")));
+        analyzer = new GermanAnalyzer();
         IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
         iwc.setSimilarity(new BM25Similarity(1.2f, 0.75f));
         iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
@@ -82,28 +84,26 @@ public class FileInputService implements IFileInputService {
         Document document = new Document();
         document.add(new TextField("content", page.getRevision().getContent(), Field.Store.YES));
         document.add(new TextField("title", page.getTitle(), TextField.Store.YES));
-
         return document;
     }
 
-    public String searchLucene(String query) throws IOException, ParseException {
-        Query q = new QueryParser("title", analyzer).parse(query);
+    public String searchLucene(String query, int resultnumber) throws IOException, ParseException {
+        MultiFieldQueryParser q = new MultiFieldQueryParser(new String[] {"title","content"}, analyzer);
 
-        // 3. search
-        int hitsPerPage = 10;
+
+        int hitsPerPage = resultnumber > 0 ? resultnumber : 10;
         IndexReader reader = DirectoryReader.open(indexDirectory);
         IndexSearcher searcher = new IndexSearcher(reader);
         searcher.setSimilarity(new BM25Similarity(1.2f, 0.75f));
-        TopDocs docs = searcher.search(q, hitsPerPage);
+        TopDocs docs = searcher.search(q.parse(query), hitsPerPage);
         ScoreDoc[] hits = docs.scoreDocs;
 
-        // 4. display results
         String result = "";
         result += ("Found " + hits.length + " hits." + "\n");
         for(int i=0;i<hits.length;++i) {
             int docId = hits[i].doc;
             Document d = searcher.doc(docId);
-            result += ((i + 1) + ". " + "\t" + d.get("title")+ "\n");
+            result += ((i + 1) + ". " + "\t" + d.get("title")+ " :"+ "score" /*TODO*/+ "\n");
         }
         return result;
     }

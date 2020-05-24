@@ -9,5 +9,5 @@ public interface IFileInputService {
 
     String createIndex() throws IOException;
 
-    String searchLucene(String query) throws IOException, ParseException;
+    String searchLucene(String query, int resultnumber) throws IOException, ParseException;
 }
