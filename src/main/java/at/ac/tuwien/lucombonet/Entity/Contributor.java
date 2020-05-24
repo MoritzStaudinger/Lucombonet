@@ -1,21 +1,18 @@
 package at.ac.tuwien.lucombonet.Entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
-@Data
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Contributor {
+    @JsonProperty("username")
     private String username;
+    @JsonProperty("id")
     private Integer id;
 }

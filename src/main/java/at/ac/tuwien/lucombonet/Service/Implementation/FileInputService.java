@@ -1,28 +1,33 @@
 package at.ac.tuwien.lucombonet.Service.Implementation;
 
 import at.ac.tuwien.lucombonet.Entity.Page;
-import at.ac.tuwien.lucombonet.Entity.Term;
 import at.ac.tuwien.lucombonet.Entity.Wiki;
-import at.ac.tuwien.lucombonet.Repository.TermRepository;
 import at.ac.tuwien.lucombonet.Service.IFileInputService;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.de.GermanAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
-
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,16 +37,16 @@ import java.nio.file.Paths;
 @Service
 public class FileInputService implements IFileInputService {
 
-    private final TermRepository termRepository;
     IndexWriter writer;
     Directory indexDirectory;
-    StandardAnalyzer analyzer = new StandardAnalyzer();
-    IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
+    Analyzer analyzer;
 
-    @Autowired
-    public FileInputService(TermRepository termRepository) throws IOException {
-        this.termRepository = termRepository;
+    public FileInputService() throws IOException {
         indexDirectory = FSDirectory.open(Paths.get("")); //Path to directory
+        analyzer = new GermanAnalyzer(); //analyzer = new StandardAnalyzer(new BufferedReader(new FileReader("stopwords-de.txt")));
+        IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
+        iwc.setSimilarity(new BM25Similarity(1.2f, 0.75f));
+        iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
         writer = new IndexWriter(indexDirectory, iwc);
     }
 
@@ -50,47 +55,64 @@ public class FileInputService implements IFileInputService {
 
         File f = new File("2000xml.xml");
         if(f.exists()) {
-            System.out.println("true");
             XmlMapper xmlMapper = new XmlMapper();
-            try {
-                String readContent = new String(Files.readAllBytes(Paths.get("2000xml.xml")));
-                Wiki p = xmlMapper.readValue(readContent, Wiki.class);
-                System.out.println(p.toString());
+            String readContent = new String(Files.readAllBytes(Paths.get("2000xml.xml")));
+            Wiki wiki = xmlMapper.readValue(readContent, Wiki.class);
+            System.out.println("number of pages: "+wiki.getPages().size());
+            for(Page page: wiki.getPages())    {
+                indexPageLucene(page);
             }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
-
+            close();
+            return "successful";
         }
-        indexFile(f);
-        return "ok";
+        throw new FileNotFoundException();
     }
 
     public void close() throws IOException {
         writer.close();
     }
 
-    private void indexFile(File file) throws IOException {
-        System.out.println("Indexing "+file.getCanonicalPath());
-        Document document = getDocument(file);
+    private void indexPageLucene(Page page) throws IOException {
+        System.out.println("Indexing: "+page.getTitle());
+        Document document = getDocumentLucene(page);
         writer.addDocument(document);
     }
 
-    private Document getDocument(File file) throws IOException {
+    private Document getDocumentLucene(Page page) throws IOException {
         Document document = new Document();
-
-        TextField contentField = new TextField("content", new FileReader(file));
-        TextField fileNameField = new TextField("filename",
-                file.getName(), TextField.Store.YES);
-        TextField filePathField = new TextField("path",
-                file.getCanonicalPath(),TextField.Store.YES);
-
-        document.add(contentField);
-        document.add(fileNameField);
-        document.add(filePathField);
+        document.add(new TextField("content", page.getRevision().getContent(), Field.Store.YES));
+        document.add(new TextField("title", page.getTitle(), TextField.Store.YES));
 
         return document;
     }
+
+    public String searchLucene(String query) throws IOException, ParseException {
+        Query q = new QueryParser("title", analyzer).parse(query);
+
+        // 3. search
+        int hitsPerPage = 10;
+        IndexReader reader = DirectoryReader.open(indexDirectory);
+        IndexSearcher searcher = new IndexSearcher(reader);
+        searcher.setSimilarity(new BM25Similarity(1.2f, 0.75f));
+        TopDocs docs = searcher.search(q, hitsPerPage);
+        ScoreDoc[] hits = docs.scoreDocs;
+
+        // 4. display results
+        String result = "";
+        result += ("Found " + hits.length + " hits." + "\n");
+        for(int i=0;i<hits.length;++i) {
+            int docId = hits[i].doc;
+            Document d = searcher.doc(docId);
+            result += ((i + 1) + ". " + "\t" + d.get("title")+ "\n");
+        }
+        return result;
+    }
+
+    private void indexPageMonet(Page page) {
+
+    }
+
+
 
 
 
