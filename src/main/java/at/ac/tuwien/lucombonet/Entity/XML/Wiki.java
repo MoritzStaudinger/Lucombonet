@@ -1,5 +1,6 @@
-package at.ac.tuwien.lucombonet.Entity;
+package at.ac.tuwien.lucombonet.Entity.XML;
 
+import at.ac.tuwien.lucombonet.Entity.XML.Page;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;

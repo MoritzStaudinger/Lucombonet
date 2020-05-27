@@ -1,7 +1,7 @@
 package at.ac.tuwien.lucombonet.Unittests;
 
-import at.ac.tuwien.lucombonet.Entity.Page;
-import at.ac.tuwien.lucombonet.Entity.Wiki;
+import at.ac.tuwien.lucombonet.Entity.XML.Page;
+import at.ac.tuwien.lucombonet.Entity.XML.Wiki;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.junit.jupiter.api.Test;
 

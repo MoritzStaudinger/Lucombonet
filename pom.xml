@@ -58,11 +58,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<dependency>
-			<groupId>monetdb</groupId>
-			<artifactId>monetdb-java-lite</artifactId>
-			<version>2.33</version>
-		</dependency>
+		<!--		<dependency>
+            <groupId>monetdb</groupId>
+                <artifactId>monetdb-java-lite</artifactId>
+                <version>2.33</version>
+            </dependency> -->
 		<dependency>
 			<groupId>org.apache.lucene</groupId>
 			<artifactId>lucene-core</artifactId>
@@ -73,11 +73,11 @@
 			<artifactId>lucene-queryparser</artifactId>
 			<version>8.4.1</version>
 		</dependency>
-		<dependency>
+	<!--	<dependency>
 			<groupId>monetdb</groupId>
 			<artifactId>monetdb-jdbc</artifactId>
 			<version>2.29</version>
-		</dependency>
+		</dependency> -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -87,7 +87,13 @@
 			<artifactId>hibernate-core</artifactId>
 			<version>5.4.12.Final</version>
 		</dependency>
-        <dependency>
+		<!-- https://mvnrepository.com/artifact/org.hibernate/hibernate-entitymanager -->
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-entitymanager</artifactId>
+			<version>5.4.16.Final</version>
+		</dependency>
+		<dependency>
             <groupId>com.fasterxml.jackson</groupId>
             <artifactId>jackson-base</artifactId>
             <version>2.10.3</version>
@@ -112,7 +118,11 @@
 			<artifactId>lucene-analyzers-common</artifactId>
 			<version>8.4.1</version>
 		</dependency>
-
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>8.0.20</version>
+		</dependency>
 	</dependencies>
 
 	<build>
