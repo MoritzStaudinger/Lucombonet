@@ -17,6 +17,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.FieldInvertState;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -28,7 +29,9 @@ import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
@@ -125,8 +128,11 @@ public class FileInputService implements IFileInputService {
         searcher.setSimilarity(new BM25Similarity(1.2f, 0.75f));
         TopDocs docs = searcher.search(q.parse(query), hitsPerPage);
         ScoreDoc[] hits = docs.scoreDocs;
+        for(int i = 0; i < reader.maxDoc(); i++) {
+            Explanation e = searcher.explain(q.parse(query), i);
+            System.out.println(e.toString());
 
-
+        }
         String result = "";
         result += ("Found " + hits.length + " hits." + "\n");
         for(int i=0;i<hits.length;++i) {
@@ -159,9 +165,11 @@ public class FileInputService implements IFileInputService {
                         d = dictionaryRepository.save(dic);
                         // System.out.println(d.toString());
                     }
-                    DocTerms dt = DocTerms.builder().id(DocTerms.DocTermsKey.builder().dictionary(d).document(dc).build()).termFrequency((long)itr.docFreq()).build();
+                    DocTerms dt = DocTerms.builder().id(DocTerms.DocTermsKey.builder().dictionary(d).document(dc).build()).termFrequency(itr.totalTermFreq()).build();
                     docTermRepository.save(dt);
-                    //System.out.println("term: " + termText + ", termFreq = " + termFreq + ", docCount = " + docCount);
+                    if(i == 1 ) {
+                        //System.out.println("term: " + termText + ", termFreq = " + termFreq + ", docCount = " + docCount);
+                    }
                 }
             }
         }
