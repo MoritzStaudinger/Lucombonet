@@ -1,0 +1,26 @@
+<mat-grid-list cols = "12" rowHeight="100px">
+  <mat-grid-tile [colspan]="12" [rowspan]="1"></mat-grid-tile>
+  <mat-grid-tile [colspan]="4" [rowspan]="1"></mat-grid-tile>
+  <mat-grid-tile [colspan]="3" [rowspan]="1"><input type="text" [(ngModel)]="searchVal" id="searchField" aria-label="Search" (keydown.enter)="search()" class="form-control"></mat-grid-tile>
+  <mat-grid-tile [colspan]="1" [rowspan]="1"><button (click)="search()" type="button" class="btn btn-success">  <i class="fas fa-search"></i> Suchen </button></mat-grid-tile>
+  <mat-grid-tile [colspan]="2" [rowspan]="1"></mat-grid-tile>
+  <mat-grid-tile [colspan]="4" [rowspan]="4" >
+    <table>
+      <th>Lucene Results</th>
+      <tr *ngFor="let result of searchResults">
+          <td>{{result.name}}</td>
+          <td>{{result.score}}</td>
+      </tr>
+    </table>
+  </mat-grid-tile>
+  <mat-grid-tile [colspan]="4" [rowspan]="4" ></mat-grid-tile>
+  <mat-grid-tile [colspan]="4" [rowspan]="4" >
+    <table>
+      <th>Lucene Results</th>
+      <tr *ngFor="let result of searchResults">
+        <td>{{result.name}}</td>
+        <td>{{result.score}}</td>
+      </tr>
+    </table>
+  </mat-grid-tile>
+</mat-grid-list>
