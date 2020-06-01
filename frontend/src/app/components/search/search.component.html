@@ -7,7 +7,8 @@
   <mat-grid-tile [colspan]="4" [rowspan]="4" >
     <table>
       <th>Lucene Results</th>
-      <tr *ngFor="let result of searchResults">
+      <tr *ngFor="let result of searchResults; let i = index" [attr.data-index]="i">
+          <td>{{i+1}}.</td>
           <td>{{result.name}}</td>
           <td>{{result.score}}</td>
       </tr>
@@ -17,7 +18,8 @@
   <mat-grid-tile [colspan]="4" [rowspan]="4" >
     <table>
       <th>Lucene Results</th>
-      <tr *ngFor="let result of searchResults">
+      <tr *ngFor="let result of searchResults; let i = index" [attr.data-index]="i">
+        <td>{{i+1}}.</td>
         <td>{{result.name}}</td>
         <td>{{result.score}}</td>
       </tr>
