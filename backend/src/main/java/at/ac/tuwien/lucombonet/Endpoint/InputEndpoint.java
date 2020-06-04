@@ -26,7 +26,6 @@ public class InputEndpoint {
         this.fileInputService = fileInputService;
     }
 
-    @CrossOrigin
     @PostMapping("/createIndex")
     public String test() {
         try {
@@ -36,9 +35,8 @@ public class InputEndpoint {
         }
     }
 
-    @CrossOrigin
     @GetMapping("/searchLucene")
-    public List<SearchResult> search(@RequestParam String searchstring, @RequestParam Integer resultnumber) {
+    public List<SearchResult> searchLucene(@RequestParam String searchstring, @RequestParam Integer resultnumber) {
         try {
             return fileInputService.searchLucene(searchstring, resultnumber);
         } catch(IOException e) {
@@ -50,4 +48,20 @@ public class InputEndpoint {
         }
 
     }
+
+    @GetMapping("/searchMariaDB")
+    public List<SearchResult> searchMariaDB(@RequestParam String searchstring, @RequestParam Integer resultnumber) {
+        try {
+            return fileInputService.searchMariaDB(searchstring, resultnumber);
+        } catch(IOException e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        } catch(ParseException e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
+
+    }
+
+
 }

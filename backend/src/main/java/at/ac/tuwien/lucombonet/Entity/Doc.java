@@ -34,6 +34,8 @@ public class Doc {
     @NotNull
     private String name;
 
+    private Long approximatedLength;
+
     private Long length;
 
     private Timestamp timestamp;

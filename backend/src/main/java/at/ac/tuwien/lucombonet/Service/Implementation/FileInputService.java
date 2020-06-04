@@ -19,11 +19,14 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInvertState;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
@@ -63,6 +66,7 @@ public class FileInputService implements IFileInputService {
     DocumentRepository documentRepository;
     DictionaryRepository dictionaryRepository;
     DocTermRepository docTermRepository;
+    SmallFloat smallFloat;
 
     IndexWriter writer;
     IndexReader reader;
@@ -72,10 +76,11 @@ public class FileInputService implements IFileInputService {
     BM25Similarity bm;
 
     @Autowired
-    public FileInputService(DocumentRepository documentRepository, DictionaryRepository dictionaryRepository, DocTermRepository docTermRepository) throws IOException {
+    public FileInputService(DocumentRepository documentRepository, DictionaryRepository dictionaryRepository, DocTermRepository docTermRepository, SmallFloat smallFloat) throws IOException {
         this.docTermRepository = docTermRepository;
         this.documentRepository = documentRepository;
         this.dictionaryRepository = dictionaryRepository;
+        this.smallFloat = smallFloat;
 
         indexDirectory = FSDirectory.open(Paths.get("")); //Path to directory
         analyzer = new GermanAnalyzer();
@@ -133,15 +138,15 @@ public class FileInputService implements IFileInputService {
         //MultiFieldQueryParser q = new MultiFieldQueryParser(new String[] {"title","content"}, analyzer);
         QueryParser q = new QueryParser("content", analyzer); // only on content for reproducibility
         int hitsPerPage = resultnumber > 0 ? resultnumber : 10;
-        searcher.setSimilarity(new BM25Similarity(1.2f, 0.75f));
+        BM25Similarity bm = new BM25Similarity(1.2f, 0.75f);
+        searcher.setSimilarity(bm);
+
         TopDocs docs = searcher.search(q.parse(query), hitsPerPage);
         ScoreDoc[] hits = docs.scoreDocs;
         for(int i = 0; i < reader.maxDoc(); i++) {
-            String a  = analyzer.normalize("content", searcher.doc(i).get("content")).utf8ToString();
-            System.out.println(a.split(" ").length);
-            System.out.println(a);
             Explanation e = searcher.explain(q.parse(query), i);
             System.out.println(e.toString());
+            System.out.println("Real Length: "+ searcher.getIndexReader().getTermVector(i, "content").getSumTotalTermFreq());
 
         }
         List<SearchResult> results = new ArrayList<>();
@@ -153,14 +158,21 @@ public class FileInputService implements IFileInputService {
         return results;
     }
 
+    @Override
+    public List<SearchResult> searchMariaDB(String query, int resultnumber) {
+        return null;
+    }
+
     private void indexMariaDB() throws IOException {
         reader = DirectoryReader.open(indexDirectory);
         searcher = new IndexSearcher(reader);
-        for(int i = 0; i < 1 /*reader.maxDoc()*/; i++) {
+        for(int i = 0; i < reader.maxDoc(); i++) {
             Document doc = reader.document(i);
             System.out.println("Processing file number : "+ i + " von "+ reader.maxDoc() + ", docId: "+doc.get("id") + ", " + doc.getField("title").toString());
             Terms termVector = searcher.getIndexReader().getTermVector(i, "content");
-            Doc dc = Doc.builder().name(doc.getField("title").toString()).length(termVector.getSumTotalTermFreq()).build();
+            Long length = termVector.getSumTotalTermFreq();
+            Long approxLength = (long)smallFloat.byte4ToInt(smallFloat.intToByte4(Integer.parseInt(length.toString())));
+            Doc dc = Doc.builder().name(doc.getField("title").toString()).length(length).approximatedLength(approxLength).build();
             dc = documentRepository.save(dc);
             if(termVector != null) {
                 TermsEnum itr = termVector.iterator();
@@ -184,8 +196,6 @@ public class FileInputService implements IFileInputService {
             }
         }
     }
-
-
 
 
 
