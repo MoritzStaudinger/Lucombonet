@@ -16,5 +16,5 @@ import lombok.ToString;
 public class SearchResult {
 
     private String name;
-    private Double score;
+    private Float score;
 }

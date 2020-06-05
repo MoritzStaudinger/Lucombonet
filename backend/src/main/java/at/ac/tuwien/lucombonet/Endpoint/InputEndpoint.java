@@ -53,10 +53,8 @@ public class InputEndpoint {
     public List<SearchResult> searchMariaDB(@RequestParam String searchstring, @RequestParam Integer resultnumber) {
         try {
             return fileInputService.searchMariaDB(searchstring, resultnumber);
-        } catch(IOException e) {
-            e.printStackTrace();
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-        } catch(ParseException e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }

@@ -4,6 +4,7 @@ import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResult;
 import at.ac.tuwien.lucombonet.Entity.Dictionary;
 import at.ac.tuwien.lucombonet.Entity.Doc;
 import at.ac.tuwien.lucombonet.Entity.DocTerms;
+import at.ac.tuwien.lucombonet.Entity.SearchResultInt;
 import at.ac.tuwien.lucombonet.Entity.XML.Page;
 import at.ac.tuwien.lucombonet.Entity.XML.Wiki;
 import at.ac.tuwien.lucombonet.Repository.DictionaryRepository;
@@ -153,13 +154,15 @@ public class FileInputService implements IFileInputService {
         for(int i=0;i<hits.length;++i) {
             int docId = hits[i].doc;
             Document d = searcher.doc(docId);
-            results.add(SearchResult.builder().name(d.get("title")).score((double)hits[i].score).build());
+            results.add(SearchResult.builder().name(d.get("title")).score(hits[i].score).build());
         }
         return results;
     }
 
     @Override
     public List<SearchResult> searchMariaDB(String query, int resultnumber) {
+        String[] terms = query.split(" ");
+        List<SearchResult> a = documentRepository.findBySingleTermBM25(query, query);
         return null;
     }
 
@@ -172,7 +175,8 @@ public class FileInputService implements IFileInputService {
             Terms termVector = searcher.getIndexReader().getTermVector(i, "content");
             Long length = termVector.getSumTotalTermFreq();
             Long approxLength = (long)smallFloat.byte4ToInt(smallFloat.intToByte4(Integer.parseInt(length.toString())));
-            Doc dc = Doc.builder().name(doc.getField("title").toString()).length(length).approximatedLength(approxLength).build();
+            String title = doc.getField("title").name();
+            Doc dc = Doc.builder().name(title).length(length).approximatedLength(approxLength).build();
             dc = documentRepository.save(dc);
             if(termVector != null) {
                 TermsEnum itr = termVector.iterator();
@@ -189,9 +193,6 @@ public class FileInputService implements IFileInputService {
                     }
                     DocTerms dt = DocTerms.builder().id(DocTerms.DocTermsKey.builder().dictionary(d).document(dc).build()).termFrequency(itr.totalTermFreq()).build();
                     docTermRepository.save(dt);
-                    if(i == 1 ) {
-                        //System.out.println("term: " + termText + ", termFreq = " + termFreq + ", docCount = " + docCount);
-                    }
                 }
             }
         }
