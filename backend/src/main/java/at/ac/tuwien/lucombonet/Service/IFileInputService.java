@@ -1,6 +1,7 @@
 package at.ac.tuwien.lucombonet.Service;
 
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResult;
+import at.ac.tuwien.lucombonet.Entity.SearchResultInt;
 import org.apache.lucene.queryparser.classic.ParseException;
 
 import javax.xml.stream.XMLStreamException;
@@ -13,5 +14,5 @@ public interface IFileInputService {
 
     List<SearchResult> searchLucene(String query, int resultnumber) throws IOException, ParseException;
 
-    List<SearchResult> searchMariaDB(String query, int resultnumber);
+    List<SearchResultInt> searchMariaDB(String query, int resultnumber);
 }

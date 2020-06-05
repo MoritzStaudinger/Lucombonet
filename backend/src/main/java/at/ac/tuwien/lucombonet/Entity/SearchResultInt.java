@@ -1,7 +1,9 @@
 package at.ac.tuwien.lucombonet.Entity;
 
 public interface SearchResultInt {
-    String getName = null;
-    Float getScore = null;
+    String name = null;
+    String getName();
+    Double score = null;
+    Double getScore();
 
 }

@@ -143,6 +143,7 @@ public class FileInputService implements IFileInputService {
         searcher.setSimilarity(bm);
 
         TopDocs docs = searcher.search(q.parse(query), hitsPerPage);
+        System.out.println(q.parse(query).toString());
         ScoreDoc[] hits = docs.scoreDocs;
         for(int i = 0; i < reader.maxDoc(); i++) {
             Explanation e = searcher.explain(q.parse(query), i);
@@ -160,10 +161,10 @@ public class FileInputService implements IFileInputService {
     }
 
     @Override
-    public List<SearchResult> searchMariaDB(String query, int resultnumber) {
+    public List<SearchResultInt> searchMariaDB(String query, int resultnumber) {
         String[] terms = query.split(" ");
-        List<SearchResult> a = documentRepository.findBySingleTermBM25(query, query);
-        return null;
+        List<SearchResultInt> a = documentRepository.findByTermsBM25(terms);
+        return a;
     }
 
     private void indexMariaDB() throws IOException {
@@ -175,7 +176,8 @@ public class FileInputService implements IFileInputService {
             Terms termVector = searcher.getIndexReader().getTermVector(i, "content");
             Long length = termVector.getSumTotalTermFreq();
             Long approxLength = (long)smallFloat.byte4ToInt(smallFloat.intToByte4(Integer.parseInt(length.toString())));
-            String title = doc.getField("title").name();
+            String title = doc.getField("title").stringValue();
+            System.out.println(title);
             Doc dc = Doc.builder().name(title).length(length).approximatedLength(approxLength).build();
             dc = documentRepository.save(dc);
             if(termVector != null) {

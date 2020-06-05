@@ -12,7 +12,8 @@ export class SearchComponent implements OnInit {
   constructor(private searchService: SearchService) {
   }
 
-  public searchResults: SearchResult[];
+  public luceneSearchResults: SearchResult[];
+  public columnSearchResults: SearchResult[];
   public searchVal = '';
   public pageSize = 10;
 
@@ -20,9 +21,8 @@ export class SearchComponent implements OnInit {
   }
 
   public search() {
-    console.log(this.searchVal);
-    this.searchService.getLuceneSearch(this.searchVal, this.pageSize).subscribe(result => {this.searchResults = result; });
-    console.log(this.searchResults);
+    this.searchService.getLuceneSearch(this.searchVal, this.pageSize).subscribe(result => {this.luceneSearchResults = result; });
+    this.searchService.getMariaDBSearch(this.searchVal, this.pageSize).subscribe(result => {this.columnSearchResults = result; });
   }
 
 }

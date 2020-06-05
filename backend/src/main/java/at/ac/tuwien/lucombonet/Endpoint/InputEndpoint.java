@@ -1,6 +1,7 @@
 package at.ac.tuwien.lucombonet.Endpoint;
 
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResult;
+import at.ac.tuwien.lucombonet.Entity.SearchResultInt;
 import at.ac.tuwien.lucombonet.Service.IFileInputService;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +51,7 @@ public class InputEndpoint {
     }
 
     @GetMapping("/searchMariaDB")
-    public List<SearchResult> searchMariaDB(@RequestParam String searchstring, @RequestParam Integer resultnumber) {
+    public List<SearchResultInt> searchMariaDB(@RequestParam String searchstring, @RequestParam Integer resultnumber) {
         try {
             return fileInputService.searchMariaDB(searchstring, resultnumber);
         }

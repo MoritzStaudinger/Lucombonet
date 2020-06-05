@@ -32,7 +32,7 @@ public interface DocumentRepository extends JpaRepository<Doc, Long> {
             "ORDER BY sum(bm25) desc", nativeQuery = true)
     List<SearchResult> findBySingleTermBM25(@Param("term") String term, @Param("term2") String term2);
 
-    @Query(value = "SELECT scoring.name, sum(scoring.bm25)\n" +
+    @Query(value = "SELECT scoring.name as name, sum(scoring.bm25) as score \n" +
             "FROM (\n" +
             "         SELECT d.name, (idf.score *\n" +
             "                         dt.term_frequency / (dt.term_frequency + 1.2 * (1-0.75 + 0.75 * (\n" +
@@ -47,5 +47,5 @@ public interface DocumentRepository extends JpaRepository<Doc, Long> {
             "         ORDER BY bm25 desc) AS scoring\n" +
             "GROUP BY scoring.name\n" +
             "ORDER BY sum(scoring.bm25) desc;", nativeQuery = true)
-    List<SearchResult> findByTermsBM25(@Param("terms") List<String> terms);
+    List<SearchResultInt> findByTermsBM25(@Param("terms") String[] terms);
 }

@@ -16,4 +16,10 @@ export class SearchService {
     params = params.set('searchstring', searchstring)
     return this.httpClient.get<SearchResult[]>('http://localhost:8080/searchLucene', {params});
   }
+
+  getMariaDBSearch(searchstring: string, resultnumber: number) {
+    let params = new HttpParams().set('resultnumber', (resultnumber).toString());
+    params = params.set('searchstring', searchstring)
+    return this.httpClient.get<SearchResult[]>('http://localhost:8080/searchMariaDB', {params});
+  }
 }
