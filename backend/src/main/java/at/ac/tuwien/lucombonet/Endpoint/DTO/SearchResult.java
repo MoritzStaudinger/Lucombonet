@@ -13,8 +13,8 @@ import lombok.ToString;
 @NoArgsConstructor
 @Builder
 @ToString
-public class SearchResult {
+public class SearchResult implements SearchResultInt{
 
     private String name;
-    private Float score;
+    private Double score;
 }

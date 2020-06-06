@@ -4,51 +4,39 @@ import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResult;
 import at.ac.tuwien.lucombonet.Entity.Dictionary;
 import at.ac.tuwien.lucombonet.Entity.Doc;
 import at.ac.tuwien.lucombonet.Entity.DocTerms;
-import at.ac.tuwien.lucombonet.Entity.SearchResultInt;
+import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResultInt;
+import at.ac.tuwien.lucombonet.Entity.QueryTable;
 import at.ac.tuwien.lucombonet.Entity.XML.Page;
 import at.ac.tuwien.lucombonet.Entity.XML.Wiki;
 import at.ac.tuwien.lucombonet.Repository.DictionaryRepository;
 import at.ac.tuwien.lucombonet.Repository.DocTermRepository;
 import at.ac.tuwien.lucombonet.Repository.DocumentRepository;
+import at.ac.tuwien.lucombonet.Repository.QueryRepository;
 import at.ac.tuwien.lucombonet.Service.IFileInputService;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.de.GermanAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.FieldInvertState;
-import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
-import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.CollectionStatistics;
-import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.UsageTrackingQueryCachingPolicy;
 import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
-import org.apache.solr.client.solrj.io.stream.ParallelStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -58,7 +46,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -67,6 +57,7 @@ public class FileInputService implements IFileInputService {
     DocumentRepository documentRepository;
     DictionaryRepository dictionaryRepository;
     DocTermRepository docTermRepository;
+    QueryRepository queryRepository;
     SmallFloat smallFloat;
 
     IndexWriter writer;
@@ -77,10 +68,11 @@ public class FileInputService implements IFileInputService {
     BM25Similarity bm;
 
     @Autowired
-    public FileInputService(DocumentRepository documentRepository, DictionaryRepository dictionaryRepository, DocTermRepository docTermRepository, SmallFloat smallFloat) throws IOException {
+    public FileInputService(DocumentRepository documentRepository, DictionaryRepository dictionaryRepository, DocTermRepository docTermRepository, QueryRepository queryRepository, SmallFloat smallFloat) throws IOException {
         this.docTermRepository = docTermRepository;
         this.documentRepository = documentRepository;
         this.dictionaryRepository = dictionaryRepository;
+        this.queryRepository = queryRepository;
         this.smallFloat = smallFloat;
 
         indexDirectory = FSDirectory.open(Paths.get("")); //Path to directory
@@ -133,7 +125,7 @@ public class FileInputService implements IFileInputService {
         return document;
     }
 
-    public List<SearchResult> searchLucene(String query, int resultnumber) throws IOException, ParseException {
+    public List<SearchResultInt> searchLucene(String query, int resultnumber) throws IOException, ParseException {
         reader = DirectoryReader.open(indexDirectory);
         searcher = new IndexSearcher(reader);
         //MultiFieldQueryParser q = new MultiFieldQueryParser(new String[] {"title","content"}, analyzer);
@@ -151,20 +143,36 @@ public class FileInputService implements IFileInputService {
             System.out.println("Real Length: "+ searcher.getIndexReader().getTermVector(i, "content").getSumTotalTermFreq());
 
         }
-        List<SearchResult> results = new ArrayList<>();
+        List<SearchResultInt> results = new ArrayList<>();
         for(int i=0;i<hits.length;++i) {
             int docId = hits[i].doc;
             Document d = searcher.doc(docId);
-            results.add(SearchResult.builder().name(d.get("title")).score(hits[i].score).build());
+            results.add(SearchResult.builder().name(d.get("title")).score((double)hits[i].score).build());
         }
         return results;
     }
 
     @Override
-    public List<SearchResultInt> searchMariaDB(String query, int resultnumber) {
-        String[] terms = query.split(" ");
-        List<SearchResultInt> a = documentRepository.findByTermsBM25(terms);
+    public List<SearchResultInt> searchMariaDB(String query, int resultnumber) throws ParseException {
+        QueryParser q = new QueryParser("", analyzer);
+        List<String> strings = Arrays.stream(q.parse(query).toString().split(" ")).sorted().collect(Collectors.toList());
+        List<SearchResultInt> a = documentRepository.findByTermsBM25(strings);
         return a;
+    }
+
+    @Override
+    public List<SearchResultInt> search(String searchstring, Integer resultnumber) throws ParseException, IOException {
+        QueryParser q = new QueryParser("", analyzer);
+        List<String> strings = Arrays.stream(q.parse(searchstring).toString().split(" ")).sorted().collect(Collectors.toList());
+
+        if(queryRepository.existsQueryTableByQuery(strings.toString())) {
+            System.out.println("mariaDB");
+            return searchMariaDB(searchstring, resultnumber);
+        } else {
+            queryRepository.save(QueryTable.builder().query(strings.toString()).build());
+            System.out.println("Lucene");
+            return searchLucene(searchstring, resultnumber);
+        }
     }
 
     private void indexMariaDB() throws IOException {

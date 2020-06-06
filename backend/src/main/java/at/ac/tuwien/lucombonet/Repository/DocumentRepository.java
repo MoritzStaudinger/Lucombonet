@@ -2,7 +2,7 @@ package at.ac.tuwien.lucombonet.Repository;
 
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResult;
 import at.ac.tuwien.lucombonet.Entity.Doc;
-import at.ac.tuwien.lucombonet.Entity.SearchResultInt;
+import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResultInt;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -47,5 +47,5 @@ public interface DocumentRepository extends JpaRepository<Doc, Long> {
             "         ORDER BY bm25 desc) AS scoring\n" +
             "GROUP BY scoring.name\n" +
             "ORDER BY sum(scoring.bm25) desc;", nativeQuery = true)
-    List<SearchResultInt> findByTermsBM25(@Param("terms") String[] terms);
+    List<SearchResultInt> findByTermsBM25(@Param("terms") List<String> terms);
 }

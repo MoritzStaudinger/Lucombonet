@@ -1,4 +1,4 @@
-package at.ac.tuwien.lucombonet.Entity;
+package at.ac.tuwien.lucombonet.Endpoint.DTO;
 
 public interface SearchResultInt {
     String name = null;

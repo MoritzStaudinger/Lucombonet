@@ -1,20 +1,19 @@
 package at.ac.tuwien.lucombonet.Endpoint;
 
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResult;
-import at.ac.tuwien.lucombonet.Entity.SearchResultInt;
+import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResultInt;
 import at.ac.tuwien.lucombonet.Service.IFileInputService;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -28,7 +27,7 @@ public class InputEndpoint {
     }
 
     @PostMapping("/createIndex")
-    public String test() {
+    public String createIndex() {
         try {
             return fileInputService.createIndex();
         } catch(IOException e) {
@@ -37,7 +36,7 @@ public class InputEndpoint {
     }
 
     @GetMapping("/searchLucene")
-    public List<SearchResult> searchLucene(@RequestParam String searchstring, @RequestParam Integer resultnumber) {
+    public List<SearchResultInt> searchLucene(@RequestParam String searchstring, @RequestParam Integer resultnumber) {
         try {
             return fileInputService.searchLucene(searchstring, resultnumber);
         } catch(IOException e) {
@@ -60,6 +59,23 @@ public class InputEndpoint {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
 
+    }
+
+    /**
+     * Combined Search with MariaDB and Lucene, if query was already sent use MariaDB otherwise Lucene
+     * @param searchstring
+     * @param resultnumber
+     * @return
+     */
+    @GetMapping("/search")
+    public List<SearchResultInt> search(@RequestParam String searchstring, @RequestParam Integer resultnumber) {
+        try {
+            return fileInputService.search(searchstring, resultnumber);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
     }
 
 
