@@ -8,12 +8,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
 import javax.validation.constraints.NotNull;
 import java.sql.Timestamp;
@@ -26,22 +25,14 @@ import java.sql.Timestamp;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Doc {
+public class Version {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "seq_doc_id")
-    @SequenceGenerator(name = "seq_doc_id", sequenceName = "seq_doc_id")
+    @GeneratedValue(strategy = GenerationType.AUTO, generator = "seq_v_id")
+    @SequenceGenerator(name = "seq_v_id", sequenceName = "seq_v_id")
     private Long id;
 
     @NotNull
-    private String name;
-
-    private Long approximatedLength;
-
-    private Long length;
-
-    @ManyToOne
-    private Version version;
-
-    private Boolean removed;
+    @Column(unique=true)
+    private Timestamp timestamp;
 }

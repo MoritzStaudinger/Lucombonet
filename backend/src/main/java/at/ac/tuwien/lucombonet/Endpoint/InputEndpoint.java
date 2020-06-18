@@ -2,6 +2,7 @@ package at.ac.tuwien.lucombonet.Endpoint;
 
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResult;
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResultInt;
+import at.ac.tuwien.lucombonet.Entity.Version;
 import at.ac.tuwien.lucombonet.Service.IFileInputService;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,10 @@ public class InputEndpoint {
         try {
             return fileInputService.createIndex();
         } catch(IOException e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        } catch(ParseException e) {
+            e.printStackTrace();
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
     }
@@ -70,7 +75,7 @@ public class InputEndpoint {
     @GetMapping("/search")
     public List<SearchResultInt> search(@RequestParam String searchstring, @RequestParam Integer resultnumber) {
         try {
-            return fileInputService.search(searchstring, resultnumber);
+            return fileInputService.search(searchstring, resultnumber, new Version());
         }
         catch (Exception e) {
             e.printStackTrace();

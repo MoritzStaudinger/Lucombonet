@@ -6,12 +6,14 @@ import at.ac.tuwien.lucombonet.Entity.Doc;
 import at.ac.tuwien.lucombonet.Entity.DocTerms;
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResultInt;
 import at.ac.tuwien.lucombonet.Entity.QueryTable;
+import at.ac.tuwien.lucombonet.Entity.Version;
 import at.ac.tuwien.lucombonet.Entity.XML.Page;
 import at.ac.tuwien.lucombonet.Entity.XML.Wiki;
 import at.ac.tuwien.lucombonet.Repository.DictionaryRepository;
 import at.ac.tuwien.lucombonet.Repository.DocTermRepository;
 import at.ac.tuwien.lucombonet.Repository.DocumentRepository;
 import at.ac.tuwien.lucombonet.Repository.QueryRepository;
+import at.ac.tuwien.lucombonet.Repository.VersionRepository;
 import at.ac.tuwien.lucombonet.Service.IFileInputService;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.apache.lucene.analysis.Analyzer;
@@ -45,6 +47,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -54,10 +57,14 @@ import java.util.stream.Collectors;
 @Service
 public class FileInputService implements IFileInputService {
 
+    //private final String DOCNAME = "testxml.xml";
+    private final String DOCNAME = "30xml.xml";
+
     DocumentRepository documentRepository;
     DictionaryRepository dictionaryRepository;
     DocTermRepository docTermRepository;
     QueryRepository queryRepository;
+    VersionRepository versionRepository;
     SmallFloat smallFloat;
 
     IndexWriter writer;
@@ -68,10 +75,16 @@ public class FileInputService implements IFileInputService {
     BM25Similarity bm;
 
     @Autowired
-    public FileInputService(DocumentRepository documentRepository, DictionaryRepository dictionaryRepository, DocTermRepository docTermRepository, QueryRepository queryRepository, SmallFloat smallFloat) throws IOException {
+    public FileInputService(DocumentRepository documentRepository,
+                            DictionaryRepository dictionaryRepository,
+                            DocTermRepository docTermRepository,
+                            VersionRepository versionRepository,
+                            QueryRepository queryRepository,
+                            SmallFloat smallFloat) throws IOException {
         this.docTermRepository = docTermRepository;
         this.documentRepository = documentRepository;
         this.dictionaryRepository = dictionaryRepository;
+        this.versionRepository = versionRepository;
         this.queryRepository = queryRepository;
         this.smallFloat = smallFloat;
 
@@ -86,19 +99,19 @@ public class FileInputService implements IFileInputService {
     }
 
     @Override
-    public String createIndex() throws IOException {
+    public String createIndex() throws IOException, ParseException {
 
-        File f = new File("30xml.xml");
+        File f = new File(DOCNAME);
         if(f.exists()) {
             XmlMapper xmlMapper = new XmlMapper();
-            String readContent = new String(Files.readAllBytes(Paths.get("30xml.xml")));
+            String readContent = new String(Files.readAllBytes(Paths.get(DOCNAME)));
             Wiki wiki = xmlMapper.readValue(readContent, Wiki.class);
             System.out.println("number of pages: "+wiki.getPages().size());
             for(Page page: wiki.getPages())    {
                 indexPageLucene(page);
             }
             close();
-            indexMariaDB();
+            //indexMariaDB();
             return "successful";
         }
         System.out.println("error");
@@ -109,9 +122,17 @@ public class FileInputService implements IFileInputService {
         writer.close();
     }
 
-    private void indexPageLucene(Page page) throws IOException {
-        //System.out.println("Indexing: "+page.getTitle());
+
+    private void indexPageLucene(Page page) throws IOException, ParseException {
+        //Check if Page is already in the Index, then only flag as delete and save new document
+        if(DirectoryReader.indexExists(indexDirectory)) {
+            reader = DirectoryReader.open(indexDirectory);
+            System.out.println("trying to delete " + page.getTitle());
+            QueryParser q = new QueryParser("title", analyzer);
+            writer.deleteDocuments(q.parse(QueryParser.escape(page.getTitle()))); //???
+        }
         Document document = getDocumentLucene(page);
+        System.out.println("Add " + document.getField("title").stringValue());
         writer.addDocument(document);
     }
 
@@ -135,18 +156,12 @@ public class FileInputService implements IFileInputService {
         searcher.setSimilarity(bm);
 
         TopDocs docs = searcher.search(q.parse(query), hitsPerPage);
-        System.out.println(q.parse(query).toString());
         ScoreDoc[] hits = docs.scoreDocs;
-        for(int i = 0; i < reader.maxDoc(); i++) {
-            Explanation e = searcher.explain(q.parse(query), i);
-            System.out.println(e.toString());
-            System.out.println("Real Length: "+ searcher.getIndexReader().getTermVector(i, "content").getSumTotalTermFreq());
-
-        }
         List<SearchResultInt> results = new ArrayList<>();
         for(int i=0;i<hits.length;++i) {
             int docId = hits[i].doc;
             Document d = searcher.doc(docId);
+            System.out.println(searcher.explain(q.parse(query), i));
             results.add(SearchResult.builder().name(d.get("title")).score((double)hits[i].score).build());
         }
         return results;
@@ -161,7 +176,7 @@ public class FileInputService implements IFileInputService {
     }
 
     @Override
-    public List<SearchResultInt> search(String searchstring, Integer resultnumber) throws ParseException, IOException {
+    public List<SearchResultInt> search(String searchstring, Integer resultnumber, Version version) throws ParseException, IOException {
         QueryParser q = new QueryParser("", analyzer);
         List<String> strings = Arrays.stream(q.parse(searchstring).toString().split(" ")).sorted().collect(Collectors.toList());
 
@@ -175,37 +190,55 @@ public class FileInputService implements IFileInputService {
         }
     }
 
+    /**
+     * Initialize the index at the first start
+     * @throws IOException
+     */
     private void indexMariaDB() throws IOException {
         reader = DirectoryReader.open(indexDirectory);
         searcher = new IndexSearcher(reader);
+        Version v = versionRepository.save(Version.builder().timestamp(new Timestamp(System.currentTimeMillis())).build());
         for(int i = 0; i < reader.maxDoc(); i++) {
             Document doc = reader.document(i);
-            System.out.println("Processing file number : "+ i + " von "+ reader.maxDoc() + ", docId: "+doc.get("id") + ", " + doc.getField("title").toString());
+            System.out.println("Processing file number : "+ i + " von "+ reader.maxDoc() + ", docId: "+doc.get("id") + ", " + doc.getField("title").stringValue());
             Terms termVector = searcher.getIndexReader().getTermVector(i, "content");
             Long length = termVector.getSumTotalTermFreq();
             Long approxLength = (long)smallFloat.byte4ToInt(smallFloat.intToByte4(Integer.parseInt(length.toString())));
             String title = doc.getField("title").stringValue();
-            System.out.println(title);
-            Doc dc = Doc.builder().name(title).length(length).approximatedLength(approxLength).build();
+            Doc dc = Doc.builder().name(title).length(length).approximatedLength(approxLength).version(v).build();
             dc = documentRepository.save(dc);
             if(termVector != null) {
-                TermsEnum itr = termVector.iterator();
-                BytesRef term = null;
-
-                while((term = itr.next()) != null) {
-                    String termText = term.utf8ToString();
-                    Term termInstance = new Term("content", term);
-                    Dictionary d = null;
-                    if( (d = dictionaryRepository.findByTerm(termText)) == null) {
-                        Dictionary dic = Dictionary.builder().term(termText).build();
-                        d = dictionaryRepository.save(dic);
-                        // System.out.println(d.toString());
-                    }
-                    DocTerms dt = DocTerms.builder().id(DocTerms.DocTermsKey.builder().dictionary(d).document(dc).build()).termFrequency(itr.totalTermFreq()).build();
-                    docTermRepository.save(dt);
-                }
+                addTermsToDB(termVector,dc);
             }
         }
+    }
+
+    private void addTermsToDB(Terms terms, Doc dc) throws IOException {
+        TermsEnum itr = terms.iterator();
+        BytesRef term = null;
+
+        while((term = itr.next()) != null) {
+            String termText = term.utf8ToString();
+            Term termInstance = new Term("content", term);
+            Dictionary d = null;
+            if( (d = dictionaryRepository.findByTerm(termText)) == null) {
+                Dictionary dic = Dictionary.builder().term(termText).build();
+                d = dictionaryRepository.save(dic);
+                // System.out.println(d.toString());
+            }
+            DocTerms dt = DocTerms.builder().id(DocTerms.DocTermsKey.builder().dictionary(d).document(dc).build()).termFrequency(itr.totalTermFreq()).build();
+            docTermRepository.save(dt);
+        }
+    }
+
+    private void removeMariaDBDocument(Long docID) {
+       Doc d =  documentRepository.getOne(docID);
+       d.setRemoved(true);
+       documentRepository.save(d);
+    }
+
+    private void insertDocument(Document doc, Terms terms, Version version) {
+
     }
 
 
