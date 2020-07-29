@@ -12,7 +12,8 @@ public interface IFileInputService {
 
     String createIndex() throws IOException, ParseException;
 
-    List<SearchResultInt> searchLucene(String query, int resultnumber) throws IOException, ParseException;
+    List<SearchResultInt> searchLuceneContent(String query, int resultnumber) throws IOException, ParseException;
+    List<SearchResultInt> searchLuceneTitle(String query, int resultnumber) throws IOException, ParseException;
 
     List<SearchResultInt> searchMariaDB(String query, int resultnumber) throws ParseException;
 

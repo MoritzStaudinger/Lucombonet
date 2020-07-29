@@ -43,7 +43,7 @@ public class InputEndpoint {
     @GetMapping("/searchLucene")
     public List<SearchResultInt> searchLucene(@RequestParam String searchstring, @RequestParam Integer resultnumber) {
         try {
-            return fileInputService.searchLucene(searchstring, resultnumber);
+            return fileInputService.searchLuceneContent(searchstring, resultnumber);
         } catch(IOException e) {
             e.printStackTrace();
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);

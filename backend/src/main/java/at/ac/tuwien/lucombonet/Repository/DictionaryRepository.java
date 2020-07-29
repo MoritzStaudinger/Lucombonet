@@ -11,6 +11,6 @@ import java.util.List;
 @Repository
 public interface DictionaryRepository extends JpaRepository<Dictionary, Long> {
 
-    @Query(value = "SELECT * FROM Dictionary WHERE term like :name LIMIT 1", nativeQuery = true)
+    @Query(value = "SELECT * FROM dictionary WHERE term like :name LIMIT 1", nativeQuery = true)
     Dictionary findByTerm(@Param("name") String term);
 }

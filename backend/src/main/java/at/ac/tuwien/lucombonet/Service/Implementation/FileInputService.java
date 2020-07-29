@@ -31,10 +31,7 @@ import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.Explanation;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.*;
 import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -58,7 +55,7 @@ import java.util.stream.Collectors;
 public class FileInputService implements IFileInputService {
 
     //private final String DOCNAME = "testxml.xml";
-    private final String DOCNAME = "30xml.xml";
+    private final String DOCNAME = "testxml.xml";
 
     DocumentRepository documentRepository;
     DictionaryRepository dictionaryRepository;
@@ -110,8 +107,8 @@ public class FileInputService implements IFileInputService {
             for(Page page: wiki.getPages())    {
                 indexPageLucene(page);
             }
-            close();
-            //indexMariaDB();
+            //close();
+            indexMariaDB();
             return "successful";
         }
         System.out.println("error");
@@ -128,8 +125,10 @@ public class FileInputService implements IFileInputService {
         if(DirectoryReader.indexExists(indexDirectory)) {
             reader = DirectoryReader.open(indexDirectory);
             System.out.println("trying to delete " + page.getTitle());
-            QueryParser q = new QueryParser("title", analyzer);
-            writer.deleteDocuments(q.parse(QueryParser.escape(page.getTitle()))); //???
+            Query query = new TermQuery(new Term(page.getTitle()));
+            BooleanQuery q = new BooleanQuery.Builder().add(query, BooleanClause.Occur.MUST).build();
+            System.out.println(searchLuceneTitle(page.getTitle(),25).size());
+            //writer.deleteDocuments(q.parse(QueryParser.escape(page.getTitle()))); //???
         }
         Document document = getDocumentLucene(page);
         System.out.println("Add " + document.getField("title").stringValue());
@@ -146,7 +145,7 @@ public class FileInputService implements IFileInputService {
         return document;
     }
 
-    public List<SearchResultInt> searchLucene(String query, int resultnumber) throws IOException, ParseException {
+    public List<SearchResultInt> searchLuceneContent(String query, int resultnumber) throws IOException, ParseException {
         reader = DirectoryReader.open(indexDirectory);
         searcher = new IndexSearcher(reader);
         //MultiFieldQueryParser q = new MultiFieldQueryParser(new String[] {"title","content"}, analyzer);
@@ -162,6 +161,27 @@ public class FileInputService implements IFileInputService {
             int docId = hits[i].doc;
             Document d = searcher.doc(docId);
             System.out.println(searcher.explain(q.parse(query), i));
+            results.add(SearchResult.builder().name(d.get("title")).score((double)hits[i].score).build());
+        }
+        return results;
+    }
+
+    @Override
+    public List<SearchResultInt> searchLuceneTitle(String query, int resultnumber) throws IOException, ParseException {
+        reader = DirectoryReader.open(indexDirectory);
+        searcher = new IndexSearcher(reader);
+        //MultiFieldQueryParser q = new MultiFieldQueryParser(new String[] {"title","content"}, analyzer);
+        QueryParser q = new QueryParser("title", analyzer); // only on content for reproducibility
+        int hitsPerPage = resultnumber > 0 ? resultnumber : 10;
+        BM25Similarity bm = new BM25Similarity(1.2f, 0.75f);
+        searcher.setSimilarity(bm);
+
+        TopDocs docs = searcher.search(q.parse(query), hitsPerPage);
+        ScoreDoc[] hits = docs.scoreDocs;
+        List<SearchResultInt> results = new ArrayList<>();
+        for(int i=0;i<hits.length;++i) {
+            int docId = hits[i].doc;
+            Document d = searcher.doc(docId);
             results.add(SearchResult.builder().name(d.get("title")).score((double)hits[i].score).build());
         }
         return results;
@@ -186,7 +206,7 @@ public class FileInputService implements IFileInputService {
         } else {
             queryRepository.save(QueryTable.builder().query(strings.toString()).build());
             System.out.println("Lucene");
-            return searchLucene(searchstring, resultnumber);
+            return searchLuceneContent(searchstring, resultnumber);
         }
     }
 
@@ -200,7 +220,7 @@ public class FileInputService implements IFileInputService {
         Version v = versionRepository.save(Version.builder().timestamp(new Timestamp(System.currentTimeMillis())).build());
         for(int i = 0; i < reader.maxDoc(); i++) {
             Document doc = reader.document(i);
-            System.out.println("Processing file number : "+ i + " von "+ reader.maxDoc() + ", docId: "+doc.get("id") + ", " + doc.getField("title").stringValue());
+            System.out.println("DB - Processing file number : "+ i + " von "+ reader.maxDoc() + ", docId: "+doc.get("id") + ", " + doc.getField("title").stringValue());
             Terms termVector = searcher.getIndexReader().getTermVector(i, "content");
             Long length = termVector.getSumTotalTermFreq();
             Long approxLength = (long)smallFloat.byte4ToInt(smallFloat.intToByte4(Integer.parseInt(length.toString())));
@@ -239,6 +259,14 @@ public class FileInputService implements IFileInputService {
 
     private void insertDocument(Document doc, Terms terms, Version version) {
 
+    }
+
+    private boolean docDBexists(String title) {
+        return false;
+    }
+
+    private boolean docLucExists(String title) {
+        return false;
     }
 
 
