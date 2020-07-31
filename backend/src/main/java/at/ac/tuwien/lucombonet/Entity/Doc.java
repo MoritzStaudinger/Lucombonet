@@ -41,7 +41,8 @@ public class Doc {
     private Long length;
 
     @ManyToOne
-    private Version version;
+    private Version added;
 
-    private Boolean removed;
+    @ManyToOne
+    private Version removed;
 }
