@@ -21,8 +21,8 @@ public class StartupService {
     private static DriverManagerDataSource getDataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setUrl("jdbc:mysql://localhost:3306/lucombonet");
-        dataSource.setUsername("root");
-        dataSource.setPassword("");
+        dataSource.setUsername("lucombonet");
+        dataSource.setPassword("password");
         return dataSource;
     }
 }

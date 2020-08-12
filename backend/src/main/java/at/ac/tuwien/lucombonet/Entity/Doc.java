@@ -36,6 +36,8 @@ public class Doc {
     @NotNull
     private String name;
 
+    private String hash;
+
     private Long approximatedLength;
 
     private Long length;
