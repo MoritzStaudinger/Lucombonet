@@ -43,9 +43,31 @@ public interface DocumentRepository extends JpaRepository<Doc, Long> {
             "                  INNER JOIN (SELECT * FROM dictionary di WHERE di.term IN :terms) as" +
             " di ON di.id = dt.dictionary_id\n" +
             "                  INNER JOIN idf ON idf.id = di.id\n" +
-            "         GROUP BY d.name, di.term\n" +
+            "         WHERE d.removed_id is null GROUP BY d.name, di.term\n" +
             "         ORDER BY bm25 desc) AS scoring\n" +
             "GROUP BY scoring.name\n" +
-            "ORDER BY sum(scoring.bm25) desc;", nativeQuery = true)
+            "ORDER BY sum(scoring.bm25) desc, scoring.name ;", nativeQuery = true)
     List<SearchResultInt> findByTermsBM25(@Param("terms") List<String> terms);
+
+    @Query(value = "SELECT * from doc where hash = :hash AND removed_id is null", nativeQuery = true)
+    Doc findByHash(@Param("hash") String hash);
+
+    @Query(value = "SELECT scoring.name, sum(scoring.bm25)" +
+            "FROM (" +
+            "         SELECT d.name, (versioned_idf.score *" +
+            "                         dt.term_frequency / (dt.term_frequency + 1.2 * (1-0.75 + 0.75 * (" +
+            "                 d.approximated_length" +
+            "                 /(SELECT avg(length) from doc where added_id <= v.id AND (removed_id is null OR removed_id > v.id) ))))) as bm25" +
+            "         FROM doc d" +
+            "                  INNER JOIN (SELECT * FROM version where id = :version) as v ON added_id <= v.id AND (removed_id is null OR removed_id > v.id)" +
+            "                  INNER JOIN doc_terms dt ON d.id = dt.document_id" +
+            "                  INNER JOIN (SELECT * FROM dictionary di WHERE di.term IN (:terms)) as di ON di.id = dt.dictionary_id" +
+            "                  INNER JOIN versioned_idf ON versioned_idf.id = di.id" +
+            "         GROUP BY d.name, di.term" +
+            "         ORDER BY bm25 desc) AS scoring" +
+            "GROUP BY scoring.name" +
+            "ORDER BY sum(scoring.bm25) desc, scoring.name;" , nativeQuery = true)
+    List<SearchResultInt> findByTermsBM25Version(@Param("terms") List<String> terms, @Param("version") Integer version);
+
+
 }

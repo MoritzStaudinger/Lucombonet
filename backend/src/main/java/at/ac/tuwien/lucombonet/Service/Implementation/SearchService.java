@@ -75,7 +75,7 @@ public class SearchService implements ISearchService {
         luceneConfig.setReader(DirectoryReader.open(luceneConfig.getIndexDirectory()));
         luceneConfig.setSearcher(new IndexSearcher(luceneConfig.getReader()));
 
-        QueryParser q = new QueryParser("title", luceneConfig.getAnalyzer()); // only on content for reproducibility
+        QueryParser q = new QueryParser("hash", luceneConfig.getAnalyzer()); // only on content for reproducibility
         BM25Similarity bm = new BM25Similarity(1.2f, 0.75f);
         luceneConfig.getSearcher().setSimilarity(bm);
 

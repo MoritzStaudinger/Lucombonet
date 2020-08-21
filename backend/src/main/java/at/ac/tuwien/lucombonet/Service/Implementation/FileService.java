@@ -39,8 +39,8 @@ import java.sql.Timestamp;
 @Service
 public class FileService implements IFileService {
 
-    //private final String DOCNAME = "testxml.xml";
-    private final String DOCNAME = "30xml.xml";
+    private final String DOCNAME = "testxml.xml";
+    //private final String DOCNAME = "30xml.xml";
 
     DocumentRepository documentRepository;
     DictionaryRepository dictionaryRepository;
@@ -59,7 +59,7 @@ public class FileService implements IFileService {
                        QueryRepository queryRepository,
                        SmallFloat smallFloat,
                        ISearchService searchService,
-                       LuceneConfig luceneConfig) throws IOException {
+                       LuceneConfig luceneConfig) {
         this.docTermRepository = docTermRepository;
         this.documentRepository = documentRepository;
         this.dictionaryRepository = dictionaryRepository;
@@ -97,10 +97,10 @@ public class FileService implements IFileService {
         if(DirectoryReader.indexExists(luceneConfig.getIndexDirectory())) {
             luceneConfig.setReader(DirectoryReader.open(luceneConfig.getIndexDirectory()));
             System.out.println("trying to delete " + page.getTitle());
-            Query query = new TermQuery(new Term(page.getTitle()));
+            Query query = new TermQuery(new Term(""+(page.getTitle().hashCode())));
             BooleanQuery q = new BooleanQuery.Builder().add(query, BooleanClause.Occur.MUST).build();
-            System.out.println(searchService.searchLuceneTitleHash(page.getTitle(),25).size());
-            //writer.deleteDocuments(q.parse(QueryParser.escape(page.getTitle()))); //???
+            System.out.println(searchService.searchLuceneTitleHash(page.getTitle()).size());
+            luceneConfig.getWriter().deleteDocuments(q); //???
         }
         Document document = getDocumentLucene(page);
         System.out.println("Add " + document.getField("title").stringValue());
@@ -114,7 +114,7 @@ public class FileService implements IFileService {
         ft.setStored(true);
         document.add(new Field("content", page.getRevision().getContent(), ft));
         document.add(new Field("title", page.getTitle(), ft));
-        document.add(new Field("hash", ""+(page.getTitle().hashCode()*(-1)), ft));
+        document.add(new Field("hash", ""+page.getTitle().hashCode(), ft));
         return document;
     }
 
@@ -134,6 +134,12 @@ public class FileService implements IFileService {
             Long approxLength = (long)smallFloat.byte4ToInt(smallFloat.intToByte4(Integer.parseInt(length.toString())));
             String title = doc.getField("title").stringValue();
             String hash = doc.getField("hash").stringValue();
+            Doc d = documentRepository.findByHash(hash);
+            if(d != null) {
+                System.out.println("marked as deleted");
+                d.setRemoved(v);
+                documentRepository.save(d);
+            }
             Doc dc = Doc.builder().name(title).length(length).approximatedLength(approxLength).added(v).hash(hash).build();
             dc = documentRepository.save(dc);
             if(termVector != null) {
