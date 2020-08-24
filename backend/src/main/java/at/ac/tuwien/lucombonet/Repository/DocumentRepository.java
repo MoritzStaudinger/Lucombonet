@@ -52,22 +52,22 @@ public interface DocumentRepository extends JpaRepository<Doc, Long> {
     @Query(value = "SELECT * from doc where hash = :hash AND removed_id is null", nativeQuery = true)
     Doc findByHash(@Param("hash") String hash);
 
-    @Query(value = "SELECT scoring.name, sum(scoring.bm25)" +
+    @Query(value = "SELECT scoring.name, sum(scoring.bm25) as score " +
             "FROM (" +
-            "         SELECT d.name, (versioned_idf.score *" +
+            "         SELECT d.name, (versioned_idf.score * " +
             "                         dt.term_frequency / (dt.term_frequency + 1.2 * (1-0.75 + 0.75 * (" +
-            "                 d.approximated_length" +
-            "                 /(SELECT avg(length) from doc where added_id <= v.id AND (removed_id is null OR removed_id > v.id) ))))) as bm25" +
-            "         FROM doc d" +
-            "                  INNER JOIN (SELECT * FROM version where id = :version) as v ON added_id <= v.id AND (removed_id is null OR removed_id > v.id)" +
-            "                  INNER JOIN doc_terms dt ON d.id = dt.document_id" +
-            "                  INNER JOIN (SELECT * FROM dictionary di WHERE di.term IN (:terms)) as di ON di.id = dt.dictionary_id" +
-            "                  INNER JOIN versioned_idf ON versioned_idf.id = di.id" +
-            "         GROUP BY d.name, di.term" +
-            "         ORDER BY bm25 desc) AS scoring" +
-            "GROUP BY scoring.name" +
-            "ORDER BY sum(scoring.bm25) desc, scoring.name;" , nativeQuery = true)
-    List<SearchResultInt> findByTermsBM25Version(@Param("terms") List<String> terms, @Param("version") Integer version);
+            "                 d.approximated_length " +
+            "                 /(SELECT avg(length) from doc where added_id <= v.id AND (removed_id is null OR removed_id > v.id) ))))) as bm25 " +
+            "         FROM doc d " +
+            "                  INNER JOIN (SELECT * FROM version where id = :version) as v ON added_id <= v.id AND (removed_id is null OR removed_id > v.id) " +
+            "                  INNER JOIN doc_terms dt ON d.id = dt.document_id " +
+            "                  INNER JOIN (SELECT * FROM dictionary di WHERE di.term IN (:terms)) as di ON di.id = dt.dictionary_id " +
+            "                  INNER JOIN versioned_idf ON versioned_idf.id = di.id " +
+            "         GROUP BY d.name, di.term " +
+            "         ORDER BY bm25 desc) AS scoring " +
+            "GROUP BY scoring.name " +
+            "ORDER BY sum(scoring.bm25) desc, scoring.name LIMIT :resultnumber ;" , nativeQuery = true)
+    List<SearchResultInt> findByTermsBM25Version(@Param("terms") List<String> terms, @Param("version") Long version, @Param("resultnumber") Integer resultnumber);
 
 
 }

@@ -1,5 +1,7 @@
 package at.ac.tuwien.lucombonet.Service.Implementation;
 
+import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResult;
+import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResultInt;
 import at.ac.tuwien.lucombonet.Entity.Dictionary;
 import at.ac.tuwien.lucombonet.Entity.Doc;
 import at.ac.tuwien.lucombonet.Entity.DocTerms;
@@ -23,6 +25,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.BytesRef;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +37,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.util.List;
 
 
 @Service
@@ -96,11 +100,13 @@ public class FileService implements IFileService {
         //Check if Page is already in the Index, then only flag as delete and save new document
         if(DirectoryReader.indexExists(luceneConfig.getIndexDirectory())) {
             luceneConfig.setReader(DirectoryReader.open(luceneConfig.getIndexDirectory()));
-            System.out.println("trying to delete " + page.getTitle());
-            Query query = new TermQuery(new Term(""+(page.getTitle().hashCode())));
-            BooleanQuery q = new BooleanQuery.Builder().add(query, BooleanClause.Occur.MUST).build();
-            System.out.println(searchService.searchLuceneTitleHash(page.getTitle()).size());
-            luceneConfig.getWriter().deleteDocuments(q); //???
+            System.out.println("trying to delete " + page.getTitle() + " - " + page.getTitle().hashCode());
+
+            QueryParser q = new QueryParser("hash", luceneConfig.getAnalyzer()); // only on content for reproducibility
+            luceneConfig.getWriter().deleteDocuments(q.parse(QueryParser.escape(page.getTitle().hashCode()+"")));
+
+            //List<SearchResultInt> results = searchService.searchLuceneTitleHash(page.getTitle().hashCode()+"");
+            //???
         }
         Document document = getDocumentLucene(page);
         System.out.println("Add " + document.getField("title").stringValue());

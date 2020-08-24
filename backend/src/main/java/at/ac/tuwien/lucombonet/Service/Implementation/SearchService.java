@@ -80,6 +80,7 @@ public class SearchService implements ISearchService {
         luceneConfig.getSearcher().setSimilarity(bm);
 
         TopDocs docs = luceneConfig.getSearcher().search(q.parse(QueryParser.escape(query)), 10);
+        luceneConfig.getWriter().deleteDocuments(q.parse(QueryParser.escape(query)));
         ScoreDoc[] hits = docs.scoreDocs;
         List<SearchResultInt> results = new ArrayList<>();
         for(int i=0;i<hits.length;++i) {
@@ -94,9 +95,16 @@ public class SearchService implements ISearchService {
     public List<SearchResultInt> searchMariaDB(String query, int resultnumber) throws ParseException {
         QueryParser q = new QueryParser("", luceneConfig.getAnalyzer());
         List<String> strings = Arrays.stream(q.parse(query).toString().split(" ")).sorted().collect(Collectors.toList());
-        List<SearchResultInt> a = documentRepository.findByTermsBM25(strings);
-        return a;
+        return documentRepository.findByTermsBM25Version(strings, versionRepository.getMax().getId(), resultnumber);
     }
+
+    @Override
+    public List<SearchResultInt> searchMariaDBVersioned(String query, long version, int resultnumber) throws ParseException {
+        QueryParser q = new QueryParser("", luceneConfig.getAnalyzer());
+        List<String> strings = Arrays.stream(q.parse(query).toString().split(" ")).sorted().collect(Collectors.toList());
+        return documentRepository.findByTermsBM25Version(strings, version, resultnumber);
+    }
+
 
     @Override
     public List<SearchResultInt> search(String searchstring, Integer resultnumber, Version version) throws ParseException, IOException {

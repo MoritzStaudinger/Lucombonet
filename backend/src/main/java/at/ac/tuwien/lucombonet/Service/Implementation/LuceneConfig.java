@@ -36,7 +36,7 @@ public class LuceneConfig {
             bm = new BM25Similarity(1.2f, 0.75f);
             bm.setDiscountOverlaps(false);
             iwc.setSimilarity(bm);
-            iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
+            iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
             writer = new IndexWriter(indexDirectory, iwc);
         }
     }

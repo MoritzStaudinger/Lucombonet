@@ -3,5 +3,4 @@ services:
   columnstore:
     ports:
     - "3306:3306"
-    image: mariadb/columnstore:latest
-    entrypoint: ""
+    image: mstaudinger/columnstore:1.0
