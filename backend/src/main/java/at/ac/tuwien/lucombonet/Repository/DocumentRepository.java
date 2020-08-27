@@ -57,7 +57,7 @@ public interface DocumentRepository extends JpaRepository<Doc, Long> {
             "         SELECT d.name, (versioned_idf.score * " +
             "                         dt.term_frequency / (dt.term_frequency + 1.2 * (1-0.75 + 0.75 * (" +
             "                 d.approximated_length " +
-            "                 /(SELECT avg(length) from doc where added_id <= v.id AND (removed_id is null OR removed_id > v.id) ))))) as bm25 " +
+            "                 /(SELECT avg(length) from doc where added_id <= :version AND (removed_id is null OR removed_id > :version) ))))) as bm25 " +
             "         FROM doc d " +
             "                  INNER JOIN (SELECT * FROM version where id = :version) as v ON added_id <= v.id AND (removed_id is null OR removed_id > v.id) " +
             "                  INNER JOIN doc_terms dt ON d.id = dt.document_id " +

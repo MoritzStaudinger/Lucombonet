@@ -2,10 +2,7 @@ package at.ac.tuwien.lucombonet.Service.Implementation;
 
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResult;
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResultInt;
-import at.ac.tuwien.lucombonet.Entity.Dictionary;
-import at.ac.tuwien.lucombonet.Entity.Doc;
-import at.ac.tuwien.lucombonet.Entity.DocTerms;
-import at.ac.tuwien.lucombonet.Entity.Version;
+import at.ac.tuwien.lucombonet.Entity.*;
 import at.ac.tuwien.lucombonet.Entity.XML.Page;
 import at.ac.tuwien.lucombonet.Entity.XML.Wiki;
 import at.ac.tuwien.lucombonet.Repository.DictionaryRepository;
@@ -37,14 +34,17 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
 public class FileService implements IFileService {
 
-    private final String DOCNAME = "testxml.xml";
-    //private final String DOCNAME = "30xml.xml";
+    //private final String DOCNAME = "testxml.xml";
+    private final String DOCNAME = "30xml.xml";
 
     DocumentRepository documentRepository;
     DictionaryRepository dictionaryRepository;
@@ -158,36 +158,26 @@ public class FileService implements IFileService {
         TermsEnum itr = terms.iterator();
         BytesRef term = null;
 
+        List<Dictionary> dicTerms = new ArrayList<>();
+        List<DocTermTemp> docTermTemps = new ArrayList<>();
         while((term = itr.next()) != null) {
-            String termText = term.utf8ToString();
-            Term termInstance = new Term("content", term);
-            Dictionary d = null;
-            if( (d = dictionaryRepository.findByTerm(termText)) == null) {
-                Dictionary dic = Dictionary.builder().term(termText).build();
-                d = dictionaryRepository.save(dic);
-                // System.out.println(d.toString());
-            }
-            DocTerms dt = DocTerms.builder().id(DocTerms.DocTermsKey.builder().dictionary(d).document(dc).build()).termFrequency(itr.totalTermFreq()).build();
-            docTermRepository.save(dt);
+            docTermTemps.add(DocTermTemp.builder().term(term.utf8ToString()).termFrequency(itr.totalTermFreq()).build());
+            dicTerms.add(Dictionary.builder().term(term.utf8ToString()).build());
         }
-    }
-
-    private void removeMariaDBDocument(Long docID) {
-       Doc d =  documentRepository.getOne(docID);
-       //d.setRemoved(true);
-       documentRepository.save(d);
-    }
-
-    private void insertDocument(Document doc, Terms terms, Version version) {
-
-    }
-
-    private boolean docDBexists(String title) {
-        return false;
-    }
-
-    private boolean docLucExists(String title) {
-        return false;
+        System.out.println(dicTerms.toString());
+        List<Dictionary> dics = dictionaryRepository.findAll();
+        List<Dictionary> finalDics = dics;
+        List<Dictionary> dicUpdated = dicTerms.parallelStream()
+                .filter(d ->finalDics.stream().noneMatch(x ->x.getTerm().equals(d.getTerm())))
+                .collect(Collectors.toList());
+        dictionaryRepository.saveAll(dicUpdated);
+        dics = dictionaryRepository.findAll();
+        List<DocTerms> docterms = new ArrayList<>();
+        for (DocTermTemp d : docTermTemps) {
+            Dictionary dic = dics.stream().filter(di -> di.getTerm().equals(d.getTerm())).findFirst().get();
+            docterms.add(DocTerms.builder().id(DocTerms.DocTermsKey.builder().dictionary(dic).document(dc).build()).termFrequency(d.getTermFrequency()).build());
+        }
+        docTermRepository.saveAll(docterms);
     }
 
 
