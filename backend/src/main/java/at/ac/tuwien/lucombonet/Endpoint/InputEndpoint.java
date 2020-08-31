@@ -25,10 +25,34 @@ public class InputEndpoint {
         this.fileInputService = fileInputService;
     }
 
-    @PostMapping("/createIndex")
-    public String createIndex() {
+    @PostMapping("/createIndexTest")
+    public String createIndexTest() {
         try {
-            return fileInputService.createIndex();
+            return fileInputService.createIndex("testxml.xml");
+        } catch(IOException e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        } catch(ParseException e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
+    }
+    @PostMapping("/createIndex30")
+    public String createIndex30() {
+        try {
+            return fileInputService.createIndex("30xml.xml");
+        } catch(IOException e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        } catch(ParseException e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
+    }
+    @PostMapping("/createIndex2000")
+    public String createIndex2000() {
+        try {
+            return fileInputService.createIndex("2000xml.xml");
         } catch(IOException e) {
             e.printStackTrace();
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);

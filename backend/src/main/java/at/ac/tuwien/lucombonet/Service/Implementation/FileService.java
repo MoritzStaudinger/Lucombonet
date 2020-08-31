@@ -39,12 +39,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 
 @Service
 public class FileService implements IFileService {
 
-    //private final String DOCNAME = "testxml.xml";
-    private final String DOCNAME = "30xml.xml";
 
     DocumentRepository documentRepository;
     DictionaryRepository dictionaryRepository;
@@ -75,19 +75,20 @@ public class FileService implements IFileService {
     }
 
     @Override
-    public String createIndex() throws IOException, ParseException {
+    public String createIndex(String docname) throws IOException, ParseException {
         luceneConfig.open();
-        File f = new File(DOCNAME);
+        File f = new File(docname);
         if(f.exists()) {
             XmlMapper xmlMapper = new XmlMapper();
-            String readContent = new String(Files.readAllBytes(Paths.get(DOCNAME)));
+            String readContent = Files.readString(Paths.get(docname));
             Wiki wiki = xmlMapper.readValue(readContent, Wiki.class);
             System.out.println("number of pages: "+wiki.getPages().size());
+            List<String> newHashes = new ArrayList<>();
             for(Page page: wiki.getPages())    {
-                indexPageLucene(page);
+                newHashes.add(indexPageLucene(page));
             }
             luceneConfig.close();
-            indexMariaDB();
+            indexMariaDB(newHashes);
             return "successful";
         }
         System.out.println("error");
@@ -96,7 +97,7 @@ public class FileService implements IFileService {
 
 
 
-    private void indexPageLucene(Page page) throws IOException, ParseException {
+    private String indexPageLucene(Page page) throws IOException, ParseException {
         //Check if Page is already in the Index, then only flag as delete and save new document
         if(DirectoryReader.indexExists(luceneConfig.getIndexDirectory())) {
             luceneConfig.setReader(DirectoryReader.open(luceneConfig.getIndexDirectory()));
@@ -111,6 +112,7 @@ public class FileService implements IFileService {
         Document document = getDocumentLucene(page);
         System.out.println("Add " + document.getField("title").stringValue());
         luceneConfig.getWriter().addDocument(document);
+        return document.getField("hash").stringValue();
     }
 
     private Document getDocumentLucene(Page page) {
@@ -128,28 +130,30 @@ public class FileService implements IFileService {
      * Initialize the index at the first start
      * @throws IOException
      */
-    private void indexMariaDB() throws IOException {
+    private void indexMariaDB(List<String> hashes) throws IOException {
         luceneConfig.setReader(DirectoryReader.open(luceneConfig.getIndexDirectory()));
         luceneConfig.setSearcher(new IndexSearcher(luceneConfig.getReader()));
         Version v = versionRepository.save(Version.builder().timestamp(new Timestamp(System.currentTimeMillis())).build());
         for(int i = 0; i < luceneConfig.getReader().maxDoc(); i++) {
             Document doc = luceneConfig.getReader().document(i);
-            System.out.println("DB - Processing file number : "+ (i+1) + " von "+ luceneConfig.getReader().maxDoc() + ", docId: "+doc.get("id") + ", " + doc.getField("title").stringValue());
-            Terms termVector = luceneConfig.getSearcher().getIndexReader().getTermVector(i, "content");
-            Long length = termVector.getSumTotalTermFreq();
-            Long approxLength = (long)smallFloat.byte4ToInt(smallFloat.intToByte4(Integer.parseInt(length.toString())));
-            String title = doc.getField("title").stringValue();
-            String hash = doc.getField("hash").stringValue();
-            Doc d = documentRepository.findByHash(hash);
-            if(d != null) {
-                System.out.println("marked as deleted");
-                d.setRemoved(v);
-                documentRepository.save(d);
-            }
-            Doc dc = Doc.builder().name(title).length(length).approximatedLength(approxLength).added(v).hash(hash).build();
-            dc = documentRepository.save(dc);
-            if(termVector != null) {
-                addTermsToDB(termVector,dc);
+            if(hashes.contains(doc.getField("hash").stringValue())) {
+                System.out.println("DB - Processing file " + doc.getField("title").stringValue());
+                Terms termVector = luceneConfig.getSearcher().getIndexReader().getTermVector(i, "content");
+                Long length = termVector.getSumTotalTermFreq();
+                Long approxLength = (long) smallFloat.byte4ToInt(smallFloat.intToByte4(Integer.parseInt(length.toString().trim())));
+                String title = doc.getField("title").stringValue();
+                String hash = doc.getField("hash").stringValue();
+                Doc d = documentRepository.findByHash(hash);
+                if (d != null) {
+                    System.out.println("marked as deleted");
+                    d.setRemoved(v);
+                    documentRepository.save(d);
+                }
+                Doc dc = Doc.builder().name(title).length(length).approximatedLength(approxLength).added(v).hash(hash).build();
+                dc = documentRepository.save(dc);
+                if (termVector != null) {
+                    addTermsToDB(termVector, dc);
+                }
             }
         }
     }
@@ -167,7 +171,7 @@ public class FileService implements IFileService {
         System.out.println(dicTerms.toString());
         List<Dictionary> dics = dictionaryRepository.findAll();
         List<Dictionary> finalDics = dics;
-        List<Dictionary> dicUpdated = dicTerms.parallelStream()
+        List<Dictionary> dicUpdated = dicTerms.stream()
                 .filter(d ->finalDics.stream().noneMatch(x ->x.getTerm().equals(d.getTerm())))
                 .collect(Collectors.toList());
         dictionaryRepository.saveAll(dicUpdated);

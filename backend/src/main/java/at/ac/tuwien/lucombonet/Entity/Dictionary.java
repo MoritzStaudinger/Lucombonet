@@ -30,6 +30,6 @@ public class Dictionary {
     private Long id;
 
     @NotNull
-    @Column(unique=true, length = 200, columnDefinition = "VARCHAR(200) CHARACTER SET utf8 COLLATE utf8_bin NULL")
+    @Column(unique=true, length = 500, columnDefinition = "VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL")
     private String term;
 }

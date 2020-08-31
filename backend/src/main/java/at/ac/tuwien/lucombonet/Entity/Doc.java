@@ -28,6 +28,7 @@ public class Doc {
     private Long id;
 
     @NotNull
+    @Column(length = 200, columnDefinition = "VARCHAR(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL")
     private String name;
 
     private String hash;

@@ -34,7 +34,6 @@ public class QueryTable {
     private Long id;
 
     @NotNull
-    @Column(unique=true)
     private String query;
 
     @NotNull

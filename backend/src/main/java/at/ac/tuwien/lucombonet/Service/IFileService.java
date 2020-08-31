@@ -10,5 +10,5 @@ import java.util.List;
 
 public interface IFileService {
 
-    String createIndex() throws IOException, ParseException;
+    String createIndex(String docname) throws IOException, ParseException;
 }
