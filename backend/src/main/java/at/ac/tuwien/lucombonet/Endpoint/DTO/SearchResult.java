@@ -17,4 +17,6 @@ public class SearchResult implements SearchResultInt{
 
     private String name;
     private Double score;
+    private String engine;
+
 }

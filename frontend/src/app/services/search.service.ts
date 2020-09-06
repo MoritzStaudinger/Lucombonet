@@ -13,13 +13,27 @@ export class SearchService {
 
   getLuceneSearch(searchstring: string, resultnumber: number): Observable<SearchResult[]>{
     let params = new HttpParams().set('resultnumber', (resultnumber).toString());
-    params = params.set('searchstring', searchstring)
+    params = params.set('searchstring', searchstring);
     return this.httpClient.get<SearchResult[]>('http://localhost:8080/searchLucene', {params});
   }
 
   getMariaDBSearch(searchstring: string, resultnumber: number) {
     let params = new HttpParams().set('resultnumber', (resultnumber).toString());
-    params = params.set('searchstring', searchstring)
+    params = params.set('searchstring', searchstring);
     return this.httpClient.get<SearchResult[]>('http://localhost:8080/searchMariaDB', {params});
   }
+
+  getSearchSave(searchstring: string, resultnumber: number) {
+    let params = new HttpParams().set('resultnumber', (resultnumber).toString());
+    params = params.set('searchstring', searchstring);
+    return this.httpClient.get<SearchResult[]>('http://localhost:8080/search', {params});
+  }
+
+  getSearchVersion(searchstring: string, resultnumber: number, version: number) {
+    let params = new HttpParams().set('resultnumber', (resultnumber).toString());
+    params = params.set('searchstring', searchstring);
+    params = params.set('version', (version).toString());
+    return this.httpClient.get<SearchResult[]>('http://localhost:8080/searchVersion', {params});
+  }
+
 }

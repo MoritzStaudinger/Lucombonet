@@ -3,4 +3,4 @@ services:
   columnstore:
     ports:
     - "3306:3306"
-    image: mstaudinger/columnstore:1.0
+    image: moritzstaudinger/columnstore:1.0

@@ -5,5 +5,7 @@ public interface SearchResultInt {
     String getName();
     Double score = null;
     Double getScore();
+    String engine = null;
+    String getEngine();
 
 }

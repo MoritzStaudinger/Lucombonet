@@ -60,7 +60,24 @@ public class SearchEndpoint {
     @GetMapping("/search")
     public List<SearchResultInt> search(@RequestParam String searchstring, @RequestParam Integer resultnumber) {
         try {
-            return searchService.search(searchstring, resultnumber, new Version());
+            return searchService.search(searchstring, resultnumber);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Combined Search with MariaDB and Lucene, if query was already sent use MariaDB otherwise Lucene
+     * @param searchstring
+     * @param resultnumber
+     * @return
+     */
+    @GetMapping("/searchVersion")
+    public List<SearchResultInt> searchVersion(@RequestParam String searchstring, @RequestParam Integer resultnumber, @RequestParam Long version) {
+        try {
+            return searchService.searchMariaDBVersioned(searchstring, version, resultnumber);
         }
         catch (Exception e) {
             e.printStackTrace();

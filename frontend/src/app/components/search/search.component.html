@@ -1,9 +1,24 @@
 <mat-grid-list cols = "12" rowHeight="100px">
-  <mat-grid-tile [colspan]="12" [rowspan]="1"></mat-grid-tile>
-  <mat-grid-tile [colspan]="4" [rowspan]="1"></mat-grid-tile>
-  <mat-grid-tile [colspan]="3" [rowspan]="1"><input type="text" [(ngModel)]="searchVal" id="searchField" aria-label="Search" (keydown.enter)="search()" class="form-control"></mat-grid-tile>
-  <mat-grid-tile [colspan]="1" [rowspan]="1"><button (click)="search()" type="button" class="btn btn-success">  <i class="fas fa-search"></i> Suchen </button></mat-grid-tile>
-  <mat-grid-tile [colspan]="2" [rowspan]="1"></mat-grid-tile>
+  <mat-grid-tile [colspan]="1" [rowspan]="1"><button (click)="testset()" type="button" class="btn btn-success">  <i class="fas fa-search"></i> Test Set </button></mat-grid-tile>
+  <mat-grid-tile [colspan]="1" [rowspan]="1"><button (click)="smallset()" type="button" class="btn btn-success">  <i class="fas fa-search"></i> 30er Set </button></mat-grid-tile>
+  <mat-grid-tile [colspan]="1" [rowspan]="1"><button (click)="largeset()" type="button" class="btn btn-success">  <i class="fas fa-search"></i> 2000er Set </button></mat-grid-tile>
+  <mat-grid-tile [colspan]="9" [rowspan]="1"></mat-grid-tile>
+  <mat-grid-tile [colspan]="3" [rowspan]="1"></mat-grid-tile>
+  <mat-grid-tile [colspan]="4" [rowspan]="1"><input type="text" [(ngModel)]="searchVal" id="searchField" aria-label="Search" (keydown.enter)="searchCompare()" class="form-control"></mat-grid-tile>
+  <mat-grid-tile [colspan]="1" [rowspan]="1"><button (click)="searchCompare()" type="button" class="btn btn-success">  <i class="fas fa-search"></i> Suchen und Vergleichen </button></mat-grid-tile>
+  <mat-grid-tile [colspan]="1" [rowspan]="1"><button (click)="searchSave()" type="button" class="btn btn-success">  <i class="fas fa-search"></i> Suchen mit Queryspeichern</button></mat-grid-tile>
+  <mat-grid-tile [colspan]="1" [rowspan]="1"><button (click)="searchVersion()" type="button" class="btn btn-success">  <i class="fas fa-search"></i> Suchen in Version </button></mat-grid-tile>
+  <mat-grid-tile [colspan]="2" [rowspan]="1">
+    <mat-form-field appearance="fill">
+      <mat-label>Version</mat-label>
+      <mat-select [(ngModel)]="selectedVersion" name="version">
+        <mat-option *ngFor="let version of versions" [value]="version.id">
+          {{version.timestamp | date:'dd.MM.yyyy HH:mm:ss'}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+  </mat-grid-tile>
   <mat-grid-tile [colspan]="4" [rowspan]="4" >
     <table>
       <th>Lucene Results</th>
@@ -14,7 +29,17 @@
       </tr>
     </table>
   </mat-grid-tile>
-  <mat-grid-tile [colspan]="4" [rowspan]="4" ></mat-grid-tile>
+  <mat-grid-tile [colspan]="4" [rowspan]="4" >
+    <table>
+      <th>Results </th>
+      <tr *ngFor="let result of searchResults; let i = index" [attr.data-index]="i">
+        <td>{{i+1}}.</td>
+        <td>{{result.name}}</td>
+        <td>{{result.score}}</td>
+        <td>{{result.engine}}</td>
+      </tr>
+    </table>
+  </mat-grid-tile>
   <mat-grid-tile [colspan]="4" [rowspan]="4" >
     <table>
       <th>Columnstore Results</th>

@@ -16,5 +16,6 @@ public interface ISearchService {
 
     List<SearchResultInt> searchMariaDBVersioned(String query, long version, int resultnumber) throws ParseException;
 
-    List<SearchResultInt> search(String searchstring, Integer resultnumber, Version version) throws ParseException, IOException;
+    List<SearchResultInt> search(String searchstring, Integer resultnumber) throws ParseException, IOException;
+
 }

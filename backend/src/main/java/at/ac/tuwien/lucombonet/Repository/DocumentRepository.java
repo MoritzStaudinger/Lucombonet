@@ -62,7 +62,7 @@ public interface DocumentRepository extends JpaRepository<Doc, Long> {
             "                  INNER JOIN (SELECT * FROM version where id = :version) as v ON added_id <= v.id AND (removed_id is null OR removed_id > v.id) " +
             "                  INNER JOIN doc_terms dt ON d.id = dt.document_id " +
             "                  INNER JOIN (SELECT * FROM dictionary di WHERE di.term IN (:terms)) as di ON di.id = dt.dictionary_id " +
-            "                  INNER JOIN versioned_idf ON versioned_idf.id = di.id " +
+            "                  INNER JOIN (SELECT * from versioned_idf where version = :version) as versioned_idf ON versioned_idf.id = di.id " +
             "         GROUP BY d.name, di.term " +
             "         ORDER BY bm25 desc) AS scoring " +
             "GROUP BY scoring.name " +

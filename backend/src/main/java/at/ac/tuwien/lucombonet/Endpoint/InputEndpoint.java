@@ -27,6 +27,7 @@ public class InputEndpoint {
 
     @PostMapping("/createIndexTest")
     public String createIndexTest() {
+        System.out.println("Test");
         try {
             return fileInputService.createIndex("testxml.xml");
         } catch(IOException e) {
