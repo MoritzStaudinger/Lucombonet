@@ -3,7 +3,6 @@
   <mat-grid-tile [colspan]="1" [rowspan]="1"><button (click)="smallset()" type="button" class="btn btn-success">  <i class="fas fa-search"></i> 30er Set </button></mat-grid-tile>
   <mat-grid-tile [colspan]="1" [rowspan]="1"><button (click)="largeset()" type="button" class="btn btn-success">  <i class="fas fa-search"></i> 2000er Set </button></mat-grid-tile>
   <mat-grid-tile [colspan]="9" [rowspan]="1"></mat-grid-tile>
-  <mat-grid-tile [colspan]="3" [rowspan]="1"></mat-grid-tile>
   <mat-grid-tile [colspan]="4" [rowspan]="1"><input type="text" [(ngModel)]="searchVal" id="searchField" aria-label="Search" (keydown.enter)="searchCompare()" class="form-control"></mat-grid-tile>
   <mat-grid-tile [colspan]="1" [rowspan]="1"><button (click)="searchCompare()" type="button" class="btn btn-success">  <i class="fas fa-search"></i> Suchen und Vergleichen </button></mat-grid-tile>
   <mat-grid-tile [colspan]="1" [rowspan]="1"><button (click)="searchSave()" type="button" class="btn btn-success">  <i class="fas fa-search"></i> Suchen mit Queryspeichern</button></mat-grid-tile>
@@ -11,12 +10,25 @@
   <mat-grid-tile [colspan]="2" [rowspan]="1">
     <mat-form-field appearance="fill">
       <mat-label>Version</mat-label>
-      <mat-select [(ngModel)]="selectedVersion" name="version">
+      <mat-select [(ngModel)]="selectedVersion" name="version" (ngModelChange)="updateQueries()">
         <mat-option *ngFor="let version of versions" [value]="version.id">
           {{version.timestamp | date:'dd.MM.yyyy HH:mm:ss'}}
         </mat-option>
       </mat-select>
     </mat-form-field>
+
+  </mat-grid-tile>
+  <mat-grid-tile [colspan]="1" [rowspan]="1"><button (click)="reproduceQuery()" type="button" class="btn btn-success">  <i class="fas fa-search"></i> Query reproduzieren </button></mat-grid-tile>
+  <mat-grid-tile [colspan]="2" [rowspan]="1">
+    <mat-form-field appearance="fill">
+      <mat-label>Queries</mat-label>
+      <mat-select [(ngModel)]="selectedQuery" name="query" >
+        <mat-option *ngFor="let query of queries" [value]="query">
+          {{query.query}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
 
   </mat-grid-tile>
   <mat-grid-tile [colspan]="4" [rowspan]="4" >
