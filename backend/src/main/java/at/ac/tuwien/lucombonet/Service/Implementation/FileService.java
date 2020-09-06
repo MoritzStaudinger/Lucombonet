@@ -168,7 +168,6 @@ public class FileService implements IFileService {
             docTermTemps.add(DocTermTemp.builder().term(term.utf8ToString()).termFrequency(itr.totalTermFreq()).build());
             dicTerms.add(Dictionary.builder().term(term.utf8ToString()).build());
         }
-        System.out.println(dicTerms.toString());
         List<Dictionary> dics = dictionaryRepository.findAll();
         List<Dictionary> finalDics = dics;
         List<Dictionary> dicUpdated = dicTerms.stream()

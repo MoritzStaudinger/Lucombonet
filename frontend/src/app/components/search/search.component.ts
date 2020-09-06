@@ -71,17 +71,18 @@ export class SearchComponent implements OnInit {
   }
 
   public testset() {
-    this.fileService.createTestset();
+    this.fileService.createTestset().subscribe(result => log(result));
     this.updateVersions();
   }
 
   public smallset() {
-    this.fileService.createSmallset();
+    this.fileService.createSmallset().subscribe(result => log(result));
     this.updateVersions();
   }
 
   public largeset() {
-
+    this.fileService.createLargeSet().subscribe(result => log(result));
+    this.updateVersions();
   }
 
 }

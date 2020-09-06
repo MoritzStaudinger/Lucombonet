@@ -23,6 +23,7 @@ public class VersionEndpoint {
 
     @GetMapping("/version")
     public List<Version> search() {
+        System.out.println("Version");
         try {
             return versionService.getAllVersions();
         }
