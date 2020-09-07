@@ -18,18 +18,12 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 
-@Entity
 @Getter
 @Setter
 @EqualsAndHashCode @ToString @Builder @NoArgsConstructor @AllArgsConstructor
 public class Dictionary {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "seq_dic_id")
-    @SequenceGenerator(name = "seq_dic_id", sequenceName = "seq_dic_id")
     private Long id;
 
-    @NotNull
-    @Column(unique=true, length = 500, columnDefinition = "VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL")
     private String term;
 }

@@ -4,6 +4,11 @@ import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResult;
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResultInt;
 import at.ac.tuwien.lucombonet.Entity.QueryTable;
 import at.ac.tuwien.lucombonet.Entity.Version;
+import at.ac.tuwien.lucombonet.Persistence.IDocTermDao;
+import at.ac.tuwien.lucombonet.Persistence.IDocumentDao;
+import at.ac.tuwien.lucombonet.Persistence.IQueryDao;
+import at.ac.tuwien.lucombonet.Persistence.IVersionDao;
+import at.ac.tuwien.lucombonet.Persistence.impl.DocumentDao;
 import at.ac.tuwien.lucombonet.Repository.*;
 import at.ac.tuwien.lucombonet.Service.ISearchService;
 import org.apache.lucene.document.Document;
@@ -28,27 +33,19 @@ import java.util.stream.Collectors;
 @Service
 public class SearchService implements ISearchService {
 
-    DocumentRepository documentRepository;
-    DictionaryRepository dictionaryRepository;
-    DocTermRepository docTermRepository;
-    QueryRepository queryRepository;
-    VersionRepository versionRepository;
+    IDocumentDao documentDao;
+    IQueryDao queryDao;
+    IVersionDao versionDao;
 
     LuceneConfig luceneConfig;
 
     @Autowired
-    public SearchService(DocumentRepository documentRepository,
-                         DictionaryRepository dictionaryRepository,
-                         DocTermRepository docTermRepository,
-                         VersionRepository versionRepository,
-                         QueryRepository queryRepository,
-                         LuceneConfig luceneConfig) {
-        this.docTermRepository = docTermRepository;
-        this.documentRepository = documentRepository;
-        this.dictionaryRepository = dictionaryRepository;
-        this.versionRepository = versionRepository;
-        this.queryRepository = queryRepository;
+    public SearchService(
+            LuceneConfig luceneConfig, IQueryDao queryDao, IVersionDao versionDao, IDocumentDao documentDao) {
+        this.queryDao = queryDao;
+        this.versionDao = versionDao;
         this.luceneConfig = luceneConfig;
+        this.documentDao = documentDao;
     }
 
     public List<SearchResultInt> searchLuceneContent(String query, int resultnumber) throws IOException, ParseException {
@@ -95,14 +92,14 @@ public class SearchService implements ISearchService {
 
     @Override
     public List<SearchResultInt> searchMariaDB(String query, int resultnumber) throws ParseException {
-        return searchMariaDBVersioned(query, versionRepository.getMax().getId(), resultnumber);
+        return searchMariaDBVersioned(query, versionDao.getMax().getId(), resultnumber);
     }
 
     @Override
     public List<SearchResultInt> searchMariaDBVersioned(String query, long version, int resultnumber) throws ParseException {
         QueryParser q = new QueryParser("", luceneConfig.getAnalyzer());
-        List<String> strings = Arrays.stream(q.parse(query).toString().split(" ")).sorted().collect(Collectors.toList());
-        List<SearchResultInt> results = documentRepository.findByTermsBM25Version(strings, version, resultnumber);
+        List<String> strings = Arrays.stream(q.parse(query).toString().split(" ")).map(x -> "\'"+x+"\'").sorted().collect(Collectors.toList());
+        List<SearchResultInt> results = documentDao.findByTermsBM25Version(strings, version, resultnumber);
         List<SearchResultInt> resultsWithEngine = new ArrayList<>();
         for(SearchResultInt result : results) {
             resultsWithEngine.add(SearchResult.builder().name(result.getName()).score(result.getScore()).engine("MariaDB").build());
@@ -119,10 +116,10 @@ public class SearchService implements ISearchService {
         }
         QueryParser q = new QueryParser("", luceneConfig.getAnalyzer());
         List<String> strings = Arrays.stream(q.parse(searchstring).toString().split(" ")).sorted().collect(Collectors.toList());
-        if(queryRepository.existsQueryTableByQuery(strings.toString(), versionRepository.getMax().getId()) != null) {
+        if(queryDao.existsQueryTableByQuery(strings.toString(), versionDao.getMax().getId()) != null) {
             return searchMariaDB(searchstring, resultnumber);
         } else {
-            queryRepository.save(QueryTable.builder().query(strings.toString()).version(versionRepository.getMax()).build());
+            queryDao.save(QueryTable.builder().query(strings.toString()).version(versionDao.getMax()).build());
             return searchLuceneContent(searchstring, resultnumber);
         }
     }

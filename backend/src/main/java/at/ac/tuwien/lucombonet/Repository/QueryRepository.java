@@ -7,7 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface QueryRepository extends JpaRepository<QueryTable, Long> {
+public interface QueryRepository  {
 
     @Query(value="SELECT id from query_table where query like :query AND version_id = :version LIMIT 1", nativeQuery = true)
     Long existsQueryTableByQuery(@Param("query") String query, @Param("version") Long version);

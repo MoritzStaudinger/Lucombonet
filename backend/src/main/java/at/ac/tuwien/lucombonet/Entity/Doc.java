@@ -12,7 +12,7 @@ import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import java.sql.Timestamp;
 
-@Entity
+
 @Getter
 @Setter
 @EqualsAndHashCode
@@ -22,13 +22,8 @@ import java.sql.Timestamp;
 @AllArgsConstructor
 public class Doc {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "seq_doc_id")
-    @SequenceGenerator(name = "seq_doc_id", sequenceName = "seq_doc_id")
     private Long id;
 
-    @NotNull
-    @Column(length = 200, columnDefinition = "VARCHAR(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL")
     private String name;
 
     private String hash;
@@ -37,9 +32,7 @@ public class Doc {
 
     private Long length;
 
-    @ManyToOne
     private Version added;
 
-    @ManyToOne
     private Version removed;
 }

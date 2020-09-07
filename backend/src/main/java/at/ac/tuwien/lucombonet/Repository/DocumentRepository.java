@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface DocumentRepository extends JpaRepository<Doc, Long> {
+public interface DocumentRepository  {
 
     @Query(value = "SELECT t.name AS name, sum(bm25) AS score \n" +
             "FROM (\n" +

@@ -17,7 +17,6 @@ import javax.persistence.SequenceGenerator;
 import javax.validation.constraints.NotNull;
 import java.sql.Timestamp;
 
-@Entity
 @Getter
 @Setter
 @EqualsAndHashCode
@@ -27,12 +26,7 @@ import java.sql.Timestamp;
 @AllArgsConstructor
 public class Version {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "seq_v_id")
-    @SequenceGenerator(name = "seq_v_id", sequenceName = "seq_v_id")
     private Long id;
 
-    @NotNull
-    @Column(unique=true)
     private Timestamp timestamp;
 }

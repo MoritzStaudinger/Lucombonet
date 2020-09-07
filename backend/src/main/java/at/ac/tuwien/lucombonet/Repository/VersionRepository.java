@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
-public interface VersionRepository  extends JpaRepository<Version, Long> {
+public interface VersionRepository  {
 
     @Query(value= "SELECT * FROM version ORDER BY id desc LIMIT 1", nativeQuery = true)
     Version getMax();

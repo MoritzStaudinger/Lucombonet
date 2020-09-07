@@ -5,6 +5,10 @@ import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResultInt;
 import at.ac.tuwien.lucombonet.Entity.*;
 import at.ac.tuwien.lucombonet.Entity.XML.Page;
 import at.ac.tuwien.lucombonet.Entity.XML.Wiki;
+import at.ac.tuwien.lucombonet.Persistence.IDictionaryDao;
+import at.ac.tuwien.lucombonet.Persistence.IDocTermDao;
+import at.ac.tuwien.lucombonet.Persistence.IDocumentDao;
+import at.ac.tuwien.lucombonet.Persistence.IVersionDao;
 import at.ac.tuwien.lucombonet.Repository.DictionaryRepository;
 import at.ac.tuwien.lucombonet.Repository.DocTermRepository;
 import at.ac.tuwien.lucombonet.Repository.DocumentRepository;
@@ -45,33 +49,30 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @Service
 public class FileService implements IFileService {
 
-
-    DocumentRepository documentRepository;
-    DictionaryRepository dictionaryRepository;
-    DocTermRepository docTermRepository;
-    QueryRepository queryRepository;
-    VersionRepository versionRepository;
     SmallFloat smallFloat;
     ISearchService searchService;
     LuceneConfig luceneConfig;
+    IVersionDao versionDao;
+    IDictionaryDao dictionaryDao;
+    IDocumentDao documentDao;
+    IDocTermDao docTermDao;
 
     @Autowired
-    public FileService(DocumentRepository documentRepository,
-                       DictionaryRepository dictionaryRepository,
-                       DocTermRepository docTermRepository,
-                       VersionRepository versionRepository,
-                       QueryRepository queryRepository,
+    public FileService(
                        SmallFloat smallFloat,
                        ISearchService searchService,
-                       LuceneConfig luceneConfig) {
-        this.docTermRepository = docTermRepository;
-        this.documentRepository = documentRepository;
-        this.dictionaryRepository = dictionaryRepository;
-        this.versionRepository = versionRepository;
-        this.queryRepository = queryRepository;
+                       LuceneConfig luceneConfig,
+                       IVersionDao versionDao,
+                       IDictionaryDao dictionaryDao,
+                       IDocumentDao documentDao,
+                       IDocTermDao docTermDao) {
         this.smallFloat = smallFloat;
         this.searchService = searchService;
         this.luceneConfig = luceneConfig;
+        this.versionDao = versionDao;
+        this.dictionaryDao = dictionaryDao;
+        this.documentDao = documentDao;
+        this.docTermDao = docTermDao;
     }
 
     @Override
@@ -133,7 +134,7 @@ public class FileService implements IFileService {
     private void indexMariaDB(List<String> hashes) throws IOException {
         luceneConfig.setReader(DirectoryReader.open(luceneConfig.getIndexDirectory()));
         luceneConfig.setSearcher(new IndexSearcher(luceneConfig.getReader()));
-        Version v = versionRepository.save(Version.builder().timestamp(new Timestamp(System.currentTimeMillis())).build());
+        Version v = versionDao.save(Version.builder().timestamp(new Timestamp(System.currentTimeMillis())).build());
         for(int i = 0; i < luceneConfig.getReader().maxDoc(); i++) {
             Document doc = luceneConfig.getReader().document(i);
             if(hashes.contains(doc.getField("hash").stringValue())) {
@@ -143,14 +144,13 @@ public class FileService implements IFileService {
                 Long approxLength = (long) smallFloat.byte4ToInt(smallFloat.intToByte4(Integer.parseInt(length.toString().trim())));
                 String title = doc.getField("title").stringValue();
                 String hash = doc.getField("hash").stringValue();
-                Doc d = documentRepository.findByHash(hash);
+                Doc d = documentDao.findByHash(hash);
                 if (d != null) {
                     System.out.println("marked as deleted");
-                    d.setRemoved(v);
-                    documentRepository.save(d);
+                    documentDao.markAsDeleted(d, v);
                 }
                 Doc dc = Doc.builder().name(title).length(length).approximatedLength(approxLength).added(v).hash(hash).build();
-                dc = documentRepository.save(dc);
+                dc = documentDao.save(dc);
                 if (termVector != null) {
                     addTermsToDB(termVector, dc);
                 }
@@ -168,19 +168,22 @@ public class FileService implements IFileService {
             docTermTemps.add(DocTermTemp.builder().term(term.utf8ToString()).termFrequency(itr.totalTermFreq()).build());
             dicTerms.add(Dictionary.builder().term(term.utf8ToString()).build());
         }
-        List<Dictionary> dics = dictionaryRepository.findAll();
+        List<Dictionary> dics = dictionaryDao.getAll();
         List<Dictionary> finalDics = dics;
         List<Dictionary> dicUpdated = dicTerms.stream()
                 .filter(d ->finalDics.stream().noneMatch(x ->x.getTerm().equals(d.getTerm())))
                 .collect(Collectors.toList());
-        dictionaryRepository.saveAll(dicUpdated);
-        dics = dictionaryRepository.findAll();
+        for(Dictionary d: dicUpdated) {
+            dictionaryDao.save(d);
+        }
+        dics = dictionaryDao.getAll();
+
         List<DocTerms> docterms = new ArrayList<>();
         for (DocTermTemp d : docTermTemps) {
             Dictionary dic = dics.stream().filter(di -> di.getTerm().equals(d.getTerm())).findFirst().get();
-            docterms.add(DocTerms.builder().id(DocTerms.DocTermsKey.builder().dictionary(dic).document(dc).build()).termFrequency(d.getTermFrequency()).build());
+            docterms.add(DocTerms.builder().dictionary(dic).document(dc).termFrequency(d.getTermFrequency()).build());
         }
-        docTermRepository.saveAll(docterms);
+        docTermDao.saveAll(docterms);
     }
 
 

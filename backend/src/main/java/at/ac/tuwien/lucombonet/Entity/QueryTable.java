@@ -18,7 +18,6 @@ import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
 import javax.validation.constraints.NotNull;
 
-@Entity
 @Getter
 @Setter
 @EqualsAndHashCode
@@ -28,15 +27,9 @@ import javax.validation.constraints.NotNull;
 @AllArgsConstructor
 public class QueryTable {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "seq_query_id")
-    @SequenceGenerator(name = "seq_query_id", sequenceName = "seq_query_id")
     private Long id;
 
-    @NotNull
     private String query;
 
-    @NotNull
-    @ManyToOne
     private Version version;
 }
