@@ -135,12 +135,13 @@ public class DocumentDao implements IDocumentDao {
 
     @Override
     public Doc markAsDeleted(Doc d, Version v) {
-        String sql = "UPDATE doc SET removed_id = ? WHERE id = ?" ;
+        String sql = "UPDATE doc SET removed_id = ? WHERE added_id = ? AND hash = ?" ;
         PreparedStatement statement = null;
         try {
             statement = dbConnectionManager.getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            statement.setLong(1, d.getApproximatedLength());
-            statement.setLong(2, v.getId());
+            statement.setLong(1, v.getId());
+            statement.setLong(2, d.getAdded().getId());
+            statement.setString(3, d.getHash());
             statement.execute();
             ResultSet result = statement.getGeneratedKeys();
             long i = 0;
@@ -162,31 +163,36 @@ public class DocumentDao implements IDocumentDao {
     public List<SearchResultInt> findByTermsBM25Version(List<String> terms, Long version, Integer resultnumber) {
         String inSql = String.join(",", terms);
         String sql = String.format("SELECT scoring.name, sum(scoring.bm25) as score " +
-                "FROM (" +
-                "         SELECT d.name, (versioned_idf.score * " +
-                "                         dt.term_frequency / (dt.term_frequency + 1.2 * (1-0.75 + 0.75 * (" +
-                "                 d.approximated_length " +
-                "                 /(SELECT avg(length) from doc where added_id <= ? AND (removed_id is null OR removed_id > ?) ))))) as bm25 " +
-                "         FROM doc d " +
-                "                  INNER JOIN (SELECT * FROM version where id = ?) as v ON added_id <= v.id AND (removed_id is null OR removed_id > v.id) " +
-                "                  INNER JOIN doc_terms dt ON d.id = dt.document_id " +
-                "                  INNER JOIN (SELECT * FROM dictionary di WHERE di.term IN (%s)) as di ON di.id = dt.dictionary_id " +
-                "                  INNER JOIN (SELECT * from versioned_idf where version = ?) as versioned_idf ON versioned_idf.id = di.id " +
-                "         GROUP BY d.name, di.term " +
-                "         ORDER BY bm25 desc) AS scoring " +
+                "            FROM (" +
+                "SELECT d.name, di.term, (log(1 + ( ? - n.freq + 0.5)/(n.freq +0.5))* " +
+                "                                     dt.term_frequency / (dt.term_frequency + 1.2 * (1-0.75 + 0.75 *" +
+                " (" +
+                "                             d.approximated_length " +
+                "                             /?)))) as bm25  " +
+                "FROM (SELECT id, name, added_id, removed_id, approximated_length FROM doc WHERE added_id <= ? AND " +
+                "(removed_id >? OR removed_id is null)) AS d  INNER JOIN " +
+                "(doc_terms dt,(SELECT * FROM dictionary di WHERE di.term in (%s)) as di, " +
+                "(SELECT dictionary_id, count(dt.dictionary_id) as freq FROM doc d INNER JOIN doc_terms dt WHERE d.id" +
+                " = dt.document_id AND added_id <= ? AND (removed_id is null OR removed_id > ?) GROUP BY " +
+                "dictionary_id) as n)  " +
+                "WHERE d.id = dt.document_id AND di.id = dt.dictionary_id AND n.dictionary_id = di.id " +
+                "GROUP BY d.name, di.term, bm25 " +
+                "ORDER BY bm25 desc ) as scoring " +
                 "GROUP BY scoring.name " +
-                "ORDER BY sum(scoring.bm25) desc, scoring.name LIMIT ? ;", inSql );
+                "ORDER BY score desc, scoring.name LIMIT ?;", inSql );
 
         System.out.println(sql);
         PreparedStatement statement = null;
         List<SearchResultInt> results = new ArrayList<>();
         try{
             statement = dbConnectionManager.getConnection().prepareStatement(sql);
-            statement.setLong(1, version);
-            statement.setLong(2, version);
+            statement.setLong(1, 12); //DocNumber
+            statement.setDouble(2, 25.41666); //AvgLength
             statement.setLong(3, version);
             statement.setLong(4, version);
-            statement.setLong(5, resultnumber);
+            statement.setLong(5, version);
+            statement.setLong(6, version);
+            statement.setLong(7, resultnumber);
             ResultSet result = statement.executeQuery();
             while (result.next()) {
                 results.add(this.dbResultToSearchResultInt(result));
