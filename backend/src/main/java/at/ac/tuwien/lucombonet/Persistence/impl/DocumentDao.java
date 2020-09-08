@@ -186,8 +186,8 @@ public class DocumentDao implements IDocumentDao {
         List<SearchResultInt> results = new ArrayList<>();
         try{
             statement = dbConnectionManager.getConnection().prepareStatement(sql);
-            statement.setLong(1, 12); //DocNumber
-            statement.setDouble(2, 25.41666); //AvgLength
+            statement.setLong(1, getDocumentNumber(version)); //DocNumber
+            statement.setDouble(2, getAverageLength(version)); //AvgLength
             statement.setLong(3, version);
             statement.setLong(4, version);
             statement.setLong(5, version);
@@ -203,5 +203,43 @@ public class DocumentDao implements IDocumentDao {
             e.printStackTrace();
         }
         return results;
+    }
+
+    public Long getDocumentNumber(Long v) {
+        String sql = "(SELECT count(id) as number From doc WHERE added_id <= ? AND (removed_id is null OR removed_id > ?))";
+        PreparedStatement statement = null;
+        try{
+            statement = dbConnectionManager.getConnection().prepareStatement(sql);
+            statement.setLong(1, v);
+            statement.setLong(2, v);
+            ResultSet result = statement.executeQuery();
+            while (result.next()) {
+                return result.getLong("number");
+            }
+        } catch(SQLException e) {
+            e.printStackTrace();
+        } catch(PersistenceException e) {
+            e.printStackTrace();
+        }
+        return 0L;
+    }
+
+    public Double getAverageLength(Long v) {
+        String sql = "(SELECT avg(length) as avlength from doc where added_id <= ? AND (removed_id is null OR removed_id > ?) )";
+        PreparedStatement statement = null;
+        try{
+            statement = dbConnectionManager.getConnection().prepareStatement(sql);
+            statement.setLong(1, v);
+            statement.setLong(2, v);
+            ResultSet result = statement.executeQuery();
+            while (result.next()) {
+                return result.getDouble("avlength");
+            }
+        } catch(SQLException e) {
+            e.printStackTrace();
+        } catch(PersistenceException e) {
+            e.printStackTrace();
+        }
+        return 0.0;
     }
 }
