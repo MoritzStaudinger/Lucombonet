@@ -96,7 +96,21 @@ public class DictionaryDao implements IDictionaryDao {
 
     @Override
     public void saveAll(List<Dictionary> dictionaries) {
-        //TODO
+        String sql = "INSERT INTO dictionary(term) VALUES (?)" ;
+        PreparedStatement statement = null;
+        try {
+            statement = dbConnectionManager.getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            for(Dictionary d: dictionaries) {
+                statement.setString(1, d.getTerm());
+                statement.addBatch();
+            }
+            statement.executeBatch();
+
+        } catch(SQLException e) {
+            e.printStackTrace();
+        } catch(PersistenceException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

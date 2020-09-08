@@ -23,7 +23,6 @@ public class DBConnectionManager {
     }
 
     public Connection getConnection() throws PersistenceException {
-        LOGGER.info("Get database connection");
         try {
             if(connection == null || connection.isClosed()) {
                 establishConnection();

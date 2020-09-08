@@ -173,9 +173,7 @@ public class FileService implements IFileService {
         List<Dictionary> dicUpdated = dicTerms.stream()
                 .filter(d ->finalDics.stream().noneMatch(x ->x.getTerm().equals(d.getTerm())))
                 .collect(Collectors.toList());
-        for(Dictionary d: dicUpdated) {
-            dictionaryDao.save(d);
-        }
+        dictionaryDao.saveAll(dicUpdated);
         dics = dictionaryDao.getAll();
 
         List<DocTerms> docterms = new ArrayList<>();
