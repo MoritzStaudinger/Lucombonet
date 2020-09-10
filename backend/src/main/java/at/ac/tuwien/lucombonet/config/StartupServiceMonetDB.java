@@ -1,5 +1,6 @@
 package at.ac.tuwien.lucombonet.config;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
@@ -9,7 +10,8 @@ import javax.annotation.PostConstruct;
 import java.sql.Connection;
 
 @Service
-public class StartupService {
+@Profile("monet")
+public class StartupServiceMonetDB {
 
     @PostConstruct
     public static void setUpView() throws Exception {
@@ -20,9 +22,10 @@ public class StartupService {
 
     private static DriverManagerDataSource getDataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setUrl("jdbc:mysql://localhost:3306/lucombonet");
-        dataSource.setUsername("lucombonet");
-        dataSource.setPassword("password");
+        dataSource.setUrl("jdbc:monetdb://localhost:50000/demo");
+        dataSource.setDriverClassName("nl.cwi.monetdb.jdbc.MonetDriver");
+        dataSource.setUsername("monetdb");
+        dataSource.setPassword("monetdb");
         return dataSource;
     }
 }

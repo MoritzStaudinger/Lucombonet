@@ -104,11 +104,10 @@ public class FileService implements IFileService {
             luceneConfig.setReader(DirectoryReader.open(luceneConfig.getIndexDirectory()));
             System.out.println("trying to delete " + page.getTitle() + " - " + page.getTitle().hashCode());
 
-            QueryParser q = new QueryParser("hash", luceneConfig.getAnalyzer()); // only on content for reproducibility
+            QueryParser q = new QueryParser("hash", luceneConfig.getAnalyzer());
             luceneConfig.getWriter().deleteDocuments(q.parse(QueryParser.escape(page.getTitle().hashCode()+"")));
 
             //List<SearchResultInt> results = searchService.searchLuceneTitleHash(page.getTitle().hashCode()+"");
-            //???
         }
         Document document = getDocumentLucene(page);
         System.out.println("Add " + document.getField("title").stringValue());
@@ -138,6 +137,7 @@ public class FileService implements IFileService {
         for(int i = 0; i < luceneConfig.getReader().maxDoc(); i++) {
             Document doc = luceneConfig.getReader().document(i);
             if(hashes.contains(doc.getField("hash").stringValue())) {
+                System.out.println(doc.getField("title")+ " " +doc.getField("hash"));
                 System.out.println("DB - Processing file " + doc.getField("title").stringValue());
                 Terms termVector = luceneConfig.getSearcher().getIndexReader().getTermVector(i, "content");
                 Long length = termVector.getSumTotalTermFreq();

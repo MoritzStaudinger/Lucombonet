@@ -2,7 +2,6 @@ package at.ac.tuwien.lucombonet.Persistence.impl;
 
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResult;
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResultInt;
-import at.ac.tuwien.lucombonet.Entity.Dictionary;
 import at.ac.tuwien.lucombonet.Entity.Doc;
 import at.ac.tuwien.lucombonet.Entity.Version;
 import at.ac.tuwien.lucombonet.Persistence.IDocumentDao;
@@ -18,18 +17,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-@Profile("mariadb")
+@Profile("monet")
 @Repository
-public class DocumentDao implements IDocumentDao {
+public class DocumentDaoMonetDB implements IDocumentDao {
 
     private final DBConnectionManager dbConnectionManager;
     private IVersionDao versionDao;
 
     @Autowired
-    public DocumentDao(DBConnectionManager dbConnectionManager, IVersionDao versionDao) {
+    public DocumentDaoMonetDB(DBConnectionManager dbConnectionManager, IVersionDao versionDao) {
         this.dbConnectionManager = dbConnectionManager;
         this.versionDao = versionDao;
     }
@@ -164,24 +162,28 @@ public class DocumentDao implements IDocumentDao {
     @Override
     public List<SearchResultInt> findByTermsBM25Version(List<String> terms, Long version, Integer resultnumber) {
         String inSql = String.join(",", terms);
-        String sql = String.format("SELECT scoring.name, sum(scoring.bm25) as score " +
-                "            FROM (" +
-                "SELECT d.name, di.term, (log(1 + ( ? - n.freq + 0.5)/(n.freq +0.5))* " +
-                "                                     dt.term_frequency / (dt.term_frequency + 1.2 * (1-0.75 + 0.75 *" +
-                " (" +
-                "                             d.approximated_length " +
-                "                             /?)))) as bm25  " +
-                "FROM (SELECT id, name, added_id, removed_id, approximated_length FROM doc WHERE added_id <= ? AND " +
-                "(removed_id >? OR removed_id is null)) AS d  INNER JOIN " +
-                "(doc_terms dt,(SELECT * FROM dictionary di WHERE di.term in (%s)) as di, " +
-                "(SELECT dictionary_id, count(dt.dictionary_id) as freq FROM doc d INNER JOIN doc_terms dt WHERE d.id" +
-                " = dt.document_id AND added_id <= ? AND (removed_id is null OR removed_id > ?) GROUP BY " +
-                "dictionary_id) as n)  " +
-                "WHERE d.id = dt.document_id AND di.id = dt.dictionary_id AND n.dictionary_id = di.id " +
-                "GROUP BY d.name, di.term, bm25 " +
-                "ORDER BY bm25 desc ) as scoring " +
-                "GROUP BY scoring.name " +
-                "ORDER BY score desc, scoring.name LIMIT ?;", inSql );
+        String sql = String.format("SELECT scoring.name, sum(scoring.bm25) as score \n" +
+                "             FROM (\n" +
+                " SELECT d.name, di.term, (log(1 + ( ? - n.freq + 0.5)/(n.freq +0.5))* \n" +
+                "                                      dt.term_frequency / (dt.term_frequency + 1.2 * (1-0.75 + 0.75 " +
+                "* (\n" +
+                "                              d.approximated_length \n" +
+                "                              /(SELECT avg(length) as avlength from doc where added_id <= ? AND (removed_id is null OR removed_id > ?)))))) as bm25  \n" +
+                " FROM \n" +
+                " (SELECT id, name, added_id, removed_id, approximated_length FROM doc WHERE added_id <= ? AND " +
+                "(removed_id >? OR removed_id is null)) AS d\n" +
+                " INNER JOIN doc_terms dt ON d.id = dt.document_id\n" +
+                " INNER JOIN (SELECT * FROM dictionary di WHERE di.term in (%s)) as di ON di.id = dt" +
+                ".dictionary_id\n" +
+                " INNER JOIN (SELECT dictionary_id, count(dt.dictionary_id) as freq FROM doc d INNER JOIN doc_terms " +
+                "dt ON (d.id = dt.document_id AND added_id <= ? AND (removed_id is null OR removed_id > ?)) GROUP BY " +
+                "dictionary_id) as n \n" +
+                " ON n.dictionary_id = di.id \n" +
+                " GROUP BY d.name, di.term, bm25\n" +
+                " ORDER BY bm25 desc ) as scoring\n" +
+                " GROUP BY scoring.name\n" +
+                " ORDER BY score desc, scoring.name LIMIT ?;\n" +
+                " ", inSql );
 
         System.out.println(sql);
         PreparedStatement statement = null;
@@ -189,12 +191,14 @@ public class DocumentDao implements IDocumentDao {
         try{
             statement = dbConnectionManager.getConnection().prepareStatement(sql);
             statement.setLong(1, getDocumentNumber(version)); //DocNumber
-            statement.setDouble(2, getAverageLength(version)); //AvgLength
+            //statement.setDouble(2, getAverageLength(version)); //AvgLength
+            statement.setLong(2, version);
             statement.setLong(3, version);
             statement.setLong(4, version);
             statement.setLong(5, version);
             statement.setLong(6, version);
-            statement.setLong(7, resultnumber);
+            statement.setLong(7, version);
+            statement.setLong(8, resultnumber);
             ResultSet result = statement.executeQuery();
             while (result.next()) {
                 results.add(this.dbResultToSearchResultInt(result));
