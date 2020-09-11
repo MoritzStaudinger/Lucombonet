@@ -15,4 +15,6 @@ public class DocTermTemp {
     String term;
 
     Long termFrequency;
+
+    Doc document;
 }

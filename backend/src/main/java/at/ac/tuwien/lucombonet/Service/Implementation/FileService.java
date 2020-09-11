@@ -40,7 +40,10 @@ import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -56,6 +59,10 @@ public class FileService implements IFileService {
     IDictionaryDao dictionaryDao;
     IDocumentDao documentDao;
     IDocTermDao docTermDao;
+    private static final int batchSize = 500;
+
+    HashSet<Dictionary> terms = new HashSet<>();
+    List<DocTermTemp> docTerms = new ArrayList<>();
 
     @Autowired
     public FileService(
@@ -84,7 +91,7 @@ public class FileService implements IFileService {
             String readContent = Files.readString(Paths.get(docname));
             Wiki wiki = xmlMapper.readValue(readContent, Wiki.class);
             System.out.println("number of pages: "+wiki.getPages().size());
-            List<String> newHashes = new ArrayList<>();
+            HashSet<String> newHashes = new HashSet<>();
             for(Page page: wiki.getPages())    {
                 newHashes.add(indexPageLucene(page));
             }
@@ -102,7 +109,7 @@ public class FileService implements IFileService {
         //Check if Page is already in the Index, then only flag as delete and save new document
         if(DirectoryReader.indexExists(luceneConfig.getIndexDirectory())) {
             luceneConfig.setReader(DirectoryReader.open(luceneConfig.getIndexDirectory()));
-            System.out.println("trying to delete " + page.getTitle() + " - " + page.getTitle().hashCode());
+            //System.out.println("trying to delete " + page.getTitle() + " - " + page.getTitle().hashCode());
 
             QueryParser q = new QueryParser("hash", luceneConfig.getAnalyzer());
             luceneConfig.getWriter().deleteDocuments(q.parse(QueryParser.escape(page.getTitle().hashCode()+"")));
@@ -110,7 +117,7 @@ public class FileService implements IFileService {
             //List<SearchResultInt> results = searchService.searchLuceneTitleHash(page.getTitle().hashCode()+"");
         }
         Document document = getDocumentLucene(page);
-        System.out.println("Add " + document.getField("title").stringValue());
+        //System.out.println("Add " + document.getField("title").stringValue());
         luceneConfig.getWriter().addDocument(document);
         return document.getField("hash").stringValue();
     }
@@ -130,15 +137,15 @@ public class FileService implements IFileService {
      * Initialize the index at the first start
      * @throws IOException
      */
-    private void indexMariaDB(List<String> hashes) throws IOException {
+    private void indexMariaDB(HashSet<String> hashes) throws IOException {
         luceneConfig.setReader(DirectoryReader.open(luceneConfig.getIndexDirectory()));
         luceneConfig.setSearcher(new IndexSearcher(luceneConfig.getReader()));
         Version v = versionDao.save(Version.builder().timestamp(new Timestamp(System.currentTimeMillis())).build());
+        int count = 0;
+        HashSet<Dictionary> dictionaries = new HashSet<>();
         for(int i = 0; i < luceneConfig.getReader().maxDoc(); i++) {
             Document doc = luceneConfig.getReader().document(i);
             if(hashes.contains(doc.getField("hash").stringValue())) {
-                System.out.println(doc.getField("title")+ " " +doc.getField("hash"));
-                System.out.println("DB - Processing file " + doc.getField("title").stringValue());
                 Terms termVector = luceneConfig.getSearcher().getIndexReader().getTermVector(i, "content");
                 Long length = termVector.getSumTotalTermFreq();
                 Long approxLength = (long) smallFloat.byte4ToInt(smallFloat.intToByte4(Integer.parseInt(length.toString().trim())));
@@ -152,36 +159,45 @@ public class FileService implements IFileService {
                 Doc dc = Doc.builder().name(title).length(length).approximatedLength(approxLength).added(v).hash(hash).build();
                 dc = documentDao.save(dc);
                 if (termVector != null) {
-                    addTermsToDB(termVector, dc);
+                    addToBatch(dc, termVector);
+                }
+                count++;
+                if(count == batchSize) {
+                    addTermsToDB();
+                    count = 0;
+                    System.out.println("batch complete");
                 }
             }
         }
+        //add the last elements;
+        addTermsToDB();
     }
 
-    private void addTermsToDB(Terms terms, Doc dc) throws IOException {
-        TermsEnum itr = terms.iterator();
+    private void addToBatch(Doc dc, Terms termVector) throws IOException {
         BytesRef term = null;
-
-        List<Dictionary> dicTerms = new ArrayList<>();
-        List<DocTermTemp> docTermTemps = new ArrayList<>();
+        TermsEnum  itr = termVector.iterator();
         while((term = itr.next()) != null) {
-            docTermTemps.add(DocTermTemp.builder().term(term.utf8ToString()).termFrequency(itr.totalTermFreq()).build());
-            dicTerms.add(Dictionary.builder().term(term.utf8ToString()).build());
+            terms.add(Dictionary.builder().term(term.utf8ToString()).build());
+            docTerms.add(DocTermTemp.builder().term(term.utf8ToString()).document(dc).termFrequency(itr.totalTermFreq()).build());
         }
-        List<Dictionary> dics = dictionaryDao.getAll();
-        List<Dictionary> finalDics = dics;
-        List<Dictionary> dicUpdated = dicTerms.stream()
-                .filter(d ->finalDics.stream().noneMatch(x ->x.getTerm().equals(d.getTerm())))
+    }
+
+    private void addTermsToDB() throws IOException {
+        Set<Dictionary> dics = dictionaryDao.getAll().stream().collect(Collectors.toSet());
+        List<Dictionary> dicUpdated = terms.stream()
+                .filter(d ->!dics.contains(d))
                 .collect(Collectors.toList());
         dictionaryDao.saveAll(dicUpdated);
-        dics = dictionaryDao.getAll();
-
+        List<Dictionary> dictionaries = dictionaryDao.getAll();
+        HashMap<String, Dictionary> dicMap = new HashMap<>();
+        dictionaries.stream().forEach(dictionary -> dicMap.put(dictionary.getTerm(), dictionary));
         List<DocTerms> docterms = new ArrayList<>();
-        for (DocTermTemp d : docTermTemps) {
-            Dictionary dic = dics.stream().filter(di -> di.getTerm().equals(d.getTerm())).findFirst().get();
-            docterms.add(DocTerms.builder().dictionary(dic).document(dc).termFrequency(d.getTermFrequency()).build());
+        for (DocTermTemp d : docTerms) {
+            docterms.add(DocTerms.builder().dictionary(dicMap.get(d.getTerm())).document(d.getDocument()).termFrequency(d.getTermFrequency()).build());
         }
         docTermDao.saveAll(docterms);
+        terms.clear();
+        docTerms.clear();
     }
 
 

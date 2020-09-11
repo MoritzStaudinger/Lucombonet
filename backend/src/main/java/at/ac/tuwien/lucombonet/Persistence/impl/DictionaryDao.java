@@ -95,7 +95,7 @@ public class DictionaryDao implements IDictionaryDao {
     }
 
     @Override
-    public void saveAll(List<Dictionary> dictionaries) {
+    public List<Dictionary> saveAll(List<Dictionary> dictionaries) {
         String sql = "INSERT INTO dictionary(term) VALUES (?)" ;
         PreparedStatement statement = null;
         try {
@@ -105,12 +105,19 @@ public class DictionaryDao implements IDictionaryDao {
                 statement.addBatch();
             }
             statement.executeBatch();
+            /*ResultSet result = statement.getGeneratedKeys();
+            int count = 0;
+            while (result.next()) {
+                dictionaries.get(count).setId(result.getLong(1));
+            }*/
+            return dictionaries;
 
         } catch(SQLException e) {
             e.printStackTrace();
         } catch(PersistenceException e) {
             e.printStackTrace();
         }
+        return null;
     }
 
     @Override

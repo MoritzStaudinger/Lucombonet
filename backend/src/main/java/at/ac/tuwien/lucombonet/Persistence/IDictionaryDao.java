@@ -12,7 +12,7 @@ public interface IDictionaryDao {
 
     Dictionary save(Dictionary d);
 
-    void saveAll(List<Dictionary> dictionaries);
+    List<Dictionary> saveAll(List<Dictionary> dictionaries);
 
     List<Dictionary> getAll();
 }
