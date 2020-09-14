@@ -1,7 +1,5 @@
 package at.ac.tuwien.lucombonet.Service.Implementation;
 
-import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResult;
-import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResultInt;
 import at.ac.tuwien.lucombonet.Entity.*;
 import at.ac.tuwien.lucombonet.Entity.XML.Page;
 import at.ac.tuwien.lucombonet.Entity.XML.Wiki;
@@ -9,11 +7,6 @@ import at.ac.tuwien.lucombonet.Persistence.IDictionaryDao;
 import at.ac.tuwien.lucombonet.Persistence.IDocTermDao;
 import at.ac.tuwien.lucombonet.Persistence.IDocumentDao;
 import at.ac.tuwien.lucombonet.Persistence.IVersionDao;
-import at.ac.tuwien.lucombonet.Repository.DictionaryRepository;
-import at.ac.tuwien.lucombonet.Repository.DocTermRepository;
-import at.ac.tuwien.lucombonet.Repository.DocumentRepository;
-import at.ac.tuwien.lucombonet.Repository.QueryRepository;
-import at.ac.tuwien.lucombonet.Repository.VersionRepository;
 import at.ac.tuwien.lucombonet.Service.IFileService;
 import at.ac.tuwien.lucombonet.Service.ISearchService;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -22,7 +15,6 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.queryparser.classic.ParseException;
@@ -39,14 +31,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 
 @Service
@@ -62,7 +51,7 @@ public class FileService implements IFileService {
     private static final int batchSize = 500;
 
     HashSet<Dictionary> terms = new HashSet<>();
-    List<DocTermTemp> docTerms = new ArrayList<>();
+    List<DocTermTemp> docTermsTemp = new ArrayList<>();
 
     @Autowired
     public FileService(
@@ -178,26 +167,26 @@ public class FileService implements IFileService {
         TermsEnum  itr = termVector.iterator();
         while((term = itr.next()) != null) {
             terms.add(Dictionary.builder().term(term.utf8ToString()).build());
-            docTerms.add(DocTermTemp.builder().term(term.utf8ToString()).document(dc).termFrequency(itr.totalTermFreq()).build());
+            docTermsTemp.add(DocTermTemp.builder().term(term.utf8ToString()).document(dc).termFrequency(itr.totalTermFreq()).build());
         }
     }
 
     private void addTermsToDB() throws IOException {
-        Set<Dictionary> dics = dictionaryDao.getAll().stream().collect(Collectors.toSet());
-        List<Dictionary> dicUpdated = terms.stream()
-                .filter(d ->!dics.contains(d))
+        Set<String> dics = dictionaryDao.getAll().stream().map(dictionary -> dictionary.getTerm()).collect(Collectors.toSet());
+        List<Dictionary> dicUpdated = terms.parallelStream()
+                .filter(d ->!dics.contains(d.getTerm()))
                 .collect(Collectors.toList());
-        dictionaryDao.saveAll(dicUpdated);
-        List<Dictionary> dictionaries = dictionaryDao.getAll();
-        HashMap<String, Dictionary> dicMap = new HashMap<>();
-        dictionaries.stream().forEach(dictionary -> dicMap.put(dictionary.getTerm(), dictionary));
-        List<DocTerms> docterms = new ArrayList<>();
-        for (DocTermTemp d : docTerms) {
-            docterms.add(DocTerms.builder().dictionary(dicMap.get(d.getTerm())).document(d.getDocument()).termFrequency(d.getTermFrequency()).build());
-        }
-        docTermDao.saveAll(docterms);
+        if(dicUpdated.size() > 1)
+            dictionaryDao.saveAll(dicUpdated);
+        HashMap<String, Dictionary> dicMap = dictionaryDao.getAllMap();
+        List<DocTerms> docTerms = new ArrayList<>();
+        docTermsTemp.stream().forEach(d -> docTerms.add(DocTerms.builder().dictionary(dicMap.get(d.getTerm())).document(d.getDocument()).termFrequency(d.getTermFrequency()).build()));
+        /*for (DocTermTemp d : docTermsTemp) {
+            docTerms.add(DocTerms.builder().dictionary(dicMap.get(d.getTerm())).document(d.getDocument()).termFrequency(d.getTermFrequency()).build());
+        }*/
+        docTermDao.saveAll(docTerms);
         terms.clear();
-        docTerms.clear();
+        docTermsTemp.clear();
     }
 
 

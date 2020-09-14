@@ -2,6 +2,7 @@ package at.ac.tuwien.lucombonet.Persistence;
 
 import at.ac.tuwien.lucombonet.Entity.Dictionary;
 
+import java.util.HashMap;
 import java.util.List;
 
 public interface IDictionaryDao {
@@ -15,4 +16,6 @@ public interface IDictionaryDao {
     List<Dictionary> saveAll(List<Dictionary> dictionaries);
 
     List<Dictionary> getAll();
+
+    HashMap<String, Dictionary> getAllMap();
 }

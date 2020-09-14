@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @Repository
@@ -138,6 +139,27 @@ public class DictionaryDao implements IDictionaryDao {
         }
         return dictionaries;
     }
+
+    @Override
+    public HashMap<String, Dictionary> getAllMap() {
+        String sql = "SELECT * FROM dictionary";
+        PreparedStatement statement = null;
+        HashMap<String, Dictionary> dictionaries = new HashMap<>();
+        try{
+            statement = dbConnectionManager.getConnection().prepareStatement(sql);
+            ResultSet result = statement.executeQuery();
+            while (result.next()) {
+                Dictionary d = dbResultToDictionary(result);
+                dictionaries.put(d.getTerm(), d);
+            }
+        } catch(SQLException e) {
+            e.printStackTrace();
+        } catch(PersistenceException e) {
+            e.printStackTrace();
+        }
+        return dictionaries;
+    }
+
 
 
 }
