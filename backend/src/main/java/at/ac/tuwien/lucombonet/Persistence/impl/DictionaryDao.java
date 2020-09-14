@@ -122,6 +122,39 @@ public class DictionaryDao implements IDictionaryDao {
     }
 
     @Override
+    public void saveAll(String filename) {
+        String sql = "COPY INTO dictionary FROM " +filename;
+        PreparedStatement statement = null;
+        try {
+            statement = dbConnectionManager.getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            statement.execute();
+
+        } catch(SQLException e) {
+            e.printStackTrace();
+        } catch(PersistenceException e) {
+            e.printStackTrace();
+        }
+    }
+
+        @Override
+    public Long getMaxId() {
+        String sql = "select max(id) from dictionary;";
+        PreparedStatement statement = null;
+        try {
+            statement = dbConnectionManager.getConnection().prepareStatement(sql);
+            ResultSet result = statement.executeQuery();
+            while (result.next()) {
+                return result.getLong(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (PersistenceException e) {
+            e.printStackTrace();
+        }
+        return 0L;
+    }
+
+    @Override
     public List<Dictionary> getAll() {
         String sql = "SELECT * FROM dictionary";
         PreparedStatement statement = null;

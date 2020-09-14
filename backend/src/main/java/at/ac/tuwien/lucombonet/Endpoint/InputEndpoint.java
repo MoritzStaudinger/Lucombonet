@@ -63,4 +63,17 @@ public class InputEndpoint {
         }
     }
 
+    @PostMapping("/createIndexWiki")
+    public String createIndexWiki() {
+        try {
+            return fileInputService.createIndex("dewiki_changed.xml");
+        } catch(IOException e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        } catch(ParseException e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
+    }
+
 }

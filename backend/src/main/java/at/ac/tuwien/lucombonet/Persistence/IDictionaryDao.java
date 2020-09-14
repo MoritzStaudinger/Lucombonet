@@ -15,6 +15,10 @@ public interface IDictionaryDao {
 
     List<Dictionary> saveAll(List<Dictionary> dictionaries);
 
+    void saveAll(String filename);
+
+    Long getMaxId();
+
     List<Dictionary> getAll();
 
     HashMap<String, Dictionary> getAllMap();

@@ -57,4 +57,19 @@ public class DocTermDao implements IDocTermDao {
             e.printStackTrace();
         }
     }
+
+    @Override
+    public void saveAll(String filename) {
+        String sql = "COPY INTO doc_terms FROM " +filename;
+        PreparedStatement statement = null;
+        try {
+            statement = dbConnectionManager.getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            statement.execute();
+
+        } catch(SQLException e) {
+            e.printStackTrace();
+        } catch(PersistenceException e) {
+            e.printStackTrace();
+        }
+    }
 }

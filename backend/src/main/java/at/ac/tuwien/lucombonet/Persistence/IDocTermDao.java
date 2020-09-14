@@ -7,4 +7,6 @@ import java.util.List;
 public interface IDocTermDao {
 
     void saveAll(List<DocTerms> terms);
+
+    void saveAll(String filename);
 }

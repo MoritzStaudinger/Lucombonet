@@ -24,9 +24,7 @@ import org.apache.lucene.util.BytesRef;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
@@ -49,6 +47,10 @@ public class FileService implements IFileService {
     IDocumentDao documentDao;
     IDocTermDao docTermDao;
     private static final int batchSize = 500;
+    private int batchcounter=0;
+    private Timestamp luceneIndexingStart;
+    private Timestamp luceneIndexingEnd;
+    private Timestamp MonetDBIndexingEnd;
 
     HashSet<Dictionary> terms = new HashSet<>();
     List<DocTermTemp> docTermsTemp = new ArrayList<>();
@@ -73,6 +75,7 @@ public class FileService implements IFileService {
 
     @Override
     public String createIndex(String docname) throws IOException, ParseException {
+        luceneIndexingStart = new Timestamp(System.currentTimeMillis());
         luceneConfig.open();
         File f = new File(docname);
         if(f.exists()) {
@@ -85,6 +88,7 @@ public class FileService implements IFileService {
                 newHashes.add(indexPageLucene(page));
             }
             luceneConfig.close();
+            luceneIndexingEnd = new Timestamp(System.currentTimeMillis());
             indexMariaDB(newHashes);
             return "successful";
         }
@@ -142,7 +146,6 @@ public class FileService implements IFileService {
                 String hash = doc.getField("hash").stringValue();
                 Doc d = documentDao.findByHash(hash);
                 if (d != null) {
-                    System.out.println("marked as deleted");
                     documentDao.markAsDeleted(d, v);
                 }
                 Doc dc = Doc.builder().name(title).length(length).approximatedLength(approxLength).added(v).hash(hash).build();
@@ -154,12 +157,17 @@ public class FileService implements IFileService {
                 if(count == batchSize) {
                     addTermsToDB();
                     count = 0;
-                    System.out.println("batch complete");
+                    batchcounter++;
+                    System.out.println("batch complete, files indexed: "+batchcounter*batchSize );
                 }
             }
         }
         //add the last elements;
         addTermsToDB();
+        MonetDBIndexingEnd = new Timestamp(System.currentTimeMillis());
+        System.out.println("lucene start: " + luceneIndexingStart.toLocalDateTime().toString());
+        System.out.println("lucene end: " + luceneIndexingEnd.toLocalDateTime().toString());
+        System.out.println("monetdb end: " + MonetDBIndexingEnd.toLocalDateTime().toString());
     }
 
     private void addToBatch(Doc dc, Terms termVector) throws IOException {
@@ -176,15 +184,37 @@ public class FileService implements IFileService {
         List<Dictionary> dicUpdated = terms.parallelStream()
                 .filter(d ->!dics.contains(d.getTerm()))
                 .collect(Collectors.toList());
-        if(dicUpdated.size() > 1)
-            dictionaryDao.saveAll(dicUpdated);
+        if(dicUpdated.size() > 1) {
+            BufferedWriter writer = new BufferedWriter(new FileWriter("dictionaries.txt"));
+            Long i = dictionaryDao.getMaxId();
+
+            for(Dictionary dictionary : dicUpdated) {
+                try {
+                    writer.write((++i) + "|"+dictionary.getTerm()+"\n");
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            writer.close();
+            File f = new File("dictionaries.txt");
+            String filename = f.getAbsolutePath().replace("\\", "\\\\");
+            dictionaryDao.saveAll("\'"+filename+"\'");
+            f.delete();
+        }
         HashMap<String, Dictionary> dicMap = dictionaryDao.getAllMap();
-        List<DocTerms> docTerms = new ArrayList<>();
-        docTermsTemp.stream().forEach(d -> docTerms.add(DocTerms.builder().dictionary(dicMap.get(d.getTerm())).document(d.getDocument()).termFrequency(d.getTermFrequency()).build()));
-        /*for (DocTermTemp d : docTermsTemp) {
-            docTerms.add(DocTerms.builder().dictionary(dicMap.get(d.getTerm())).document(d.getDocument()).termFrequency(d.getTermFrequency()).build());
-        }*/
-        docTermDao.saveAll(docTerms);
+
+        BufferedWriter writer = new BufferedWriter(new FileWriter("docterms.txt"));
+        for(DocTermTemp d: docTermsTemp) {
+            if(dicMap.get(d.getTerm()) != null ) {
+                writer.write(d.getTermFrequency()  +"|"+d.getDocument().getId()+ "|" +dicMap.get(d.getTerm()).getId() + "\n");
+            }
+        }
+        writer.close();
+        File f = new File("docterms.txt");
+        String filename = f.getAbsolutePath().replace("\\", "\\\\");
+        docTermDao.saveAll("\'"+filename+"\'");
+        f.delete();
         terms.clear();
         docTermsTemp.clear();
     }
