@@ -25,7 +25,7 @@ public class LuceneConfig {
     BM25Similarity bm;
 
     public LuceneConfig() throws IOException {
-        indexDirectory = FSDirectory.open(Paths.get("")); //Path to directory
+        indexDirectory = FSDirectory.open(Paths.get("Lucene/")); //Path to directory
         analyzer = new GermanAnalyzer();
         open();
     }
