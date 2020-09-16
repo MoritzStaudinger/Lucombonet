@@ -182,7 +182,7 @@ public class DocumentDaoMonetDB implements IDocumentDao {
                 " GROUP BY d.name, di.term, bm25\n" +
                 " ORDER BY bm25 desc ) as scoring\n" +
                 " GROUP BY scoring.name\n" +
-                " ORDER BY score desc, scoring.name LIMIT ?;\n" +
+                " ORDER BY score desc, scoring.name desc LIMIT ?;\n" +
                 " ", inSql );
 
         System.out.println(sql);
@@ -209,6 +209,39 @@ public class DocumentDaoMonetDB implements IDocumentDao {
             e.printStackTrace();
         }
         return results;
+    }
+
+    @Override
+    public void saveAll(String filename) {
+        String sql = "COPY INTO doc FROM " +filename;
+        PreparedStatement statement = null;
+        try {
+            statement = dbConnectionManager.getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            statement.execute();
+
+        } catch(SQLException e) {
+            e.printStackTrace();
+        } catch(PersistenceException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public Long getMaxId() {
+        String sql = "select max(id) from doc;";
+        PreparedStatement statement = null;
+        try {
+            statement = dbConnectionManager.getConnection().prepareStatement(sql);
+            ResultSet result = statement.executeQuery();
+            while (result.next()) {
+                return result.getLong(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (PersistenceException e) {
+            e.printStackTrace();
+        }
+        return 0L;
     }
 
     public Long getDocumentNumber(Long v) {

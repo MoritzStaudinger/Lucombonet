@@ -66,7 +66,7 @@ public class InputEndpoint {
     @PostMapping("/createIndexWiki")
     public String createIndexWiki() {
         try {
-            return fileInputService.createIndex("dewiki_changed.xml");
+            return fileInputService.createIndex("snippet_2");
         } catch(IOException e) {
             e.printStackTrace();
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);

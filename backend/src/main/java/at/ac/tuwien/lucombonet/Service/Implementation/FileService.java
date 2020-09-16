@@ -1,6 +1,7 @@
 package at.ac.tuwien.lucombonet.Service.Implementation;
 
 import at.ac.tuwien.lucombonet.Entity.*;
+import at.ac.tuwien.lucombonet.Entity.Dictionary;
 import at.ac.tuwien.lucombonet.Entity.XML.Page;
 import at.ac.tuwien.lucombonet.Entity.XML.Wiki;
 import at.ac.tuwien.lucombonet.Persistence.IDictionaryDao;
@@ -10,6 +11,7 @@ import at.ac.tuwien.lucombonet.Persistence.IVersionDao;
 import at.ac.tuwien.lucombonet.Service.IFileService;
 import at.ac.tuwien.lucombonet.Service.ISearchService;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.mysql.cj.x.protobuf.MysqlxDatatypes;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -28,11 +30,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -46,8 +44,9 @@ public class FileService implements IFileService {
     IDictionaryDao dictionaryDao;
     IDocumentDao documentDao;
     IDocTermDao docTermDao;
-    private static final int batchSize = 500;
+    private static final int batchSize = 20000;
     private int batchcounter=0;
+    private Timestamp readingStart;
     private Timestamp luceneIndexingStart;
     private Timestamp luceneIndexingEnd;
     private Timestamp MonetDBIndexingEnd;
@@ -75,19 +74,21 @@ public class FileService implements IFileService {
 
     @Override
     public String createIndex(String docname) throws IOException, ParseException {
-        luceneIndexingStart = new Timestamp(System.currentTimeMillis());
-        luceneConfig.open();
+        readingStart = new Timestamp(System.currentTimeMillis());
         File f = new File(docname);
+        HashSet<String> newHashes = new HashSet<>();
         if(f.exists()) {
             XmlMapper xmlMapper = new XmlMapper();
+            luceneConfig.open();
             String readContent = Files.readString(Paths.get(docname));
-            Wiki wiki = xmlMapper.readValue(readContent, Wiki.class);
+            Wiki wiki = xmlMapper.readValue(readContent.toString(), Wiki.class);
             System.out.println("number of pages: "+wiki.getPages().size());
-            HashSet<String> newHashes = new HashSet<>();
-            for(Page page: wiki.getPages())    {
+            luceneIndexingStart = new Timestamp((System.currentTimeMillis()));
+            for(Page page: wiki.getPages()) {
                 newHashes.add(indexPageLucene(page));
             }
             luceneConfig.close();
+            System.out.println("Index Lucene finished");
             luceneIndexingEnd = new Timestamp(System.currentTimeMillis());
             indexMariaDB(newHashes);
             return "successful";
@@ -134,13 +135,17 @@ public class FileService implements IFileService {
         luceneConfig.setReader(DirectoryReader.open(luceneConfig.getIndexDirectory()));
         luceneConfig.setSearcher(new IndexSearcher(luceneConfig.getReader()));
         Version v = versionDao.save(Version.builder().timestamp(new Timestamp(System.currentTimeMillis())).build());
+        BufferedWriter writer = new BufferedWriter(new FileWriter("doc.txt"));
+        Long index = documentDao.getMaxId();
         int count = 0;
-        HashSet<Dictionary> dictionaries = new HashSet<>();
         for(int i = 0; i < luceneConfig.getReader().maxDoc(); i++) {
             Document doc = luceneConfig.getReader().document(i);
             if(hashes.contains(doc.getField("hash").stringValue())) {
                 Terms termVector = luceneConfig.getSearcher().getIndexReader().getTermVector(i, "content");
-                Long length = termVector.getSumTotalTermFreq();
+                Long length = 0L;
+                if(termVector != null) {
+                    length = termVector.getSumTotalTermFreq();
+                }
                 Long approxLength = (long) smallFloat.byte4ToInt(smallFloat.intToByte4(Integer.parseInt(length.toString().trim())));
                 String title = doc.getField("title").stringValue();
                 String hash = doc.getField("hash").stringValue();
@@ -148,23 +153,32 @@ public class FileService implements IFileService {
                 if (d != null) {
                     documentDao.markAsDeleted(d, v);
                 }
-                Doc dc = Doc.builder().name(title).length(length).approximatedLength(approxLength).added(v).hash(hash).build();
-                dc = documentDao.save(dc);
+                Doc dc = Doc.builder().id(++index).name(title).length(length).approximatedLength(approxLength).added(v).hash(hash).build();
+                writer.write((index) + "|"+dc.getApproximatedLength() + "|"+ dc.getHash() +"|"+ dc.getLength() +"|"+ dc.getName() +"|" +dc.getAdded().getId() + "|" +null +"\n");
                 if (termVector != null) {
                     addToBatch(dc, termVector);
                 }
                 count++;
                 if(count == batchSize) {
+                    writer.close();
+                    File f = new File("doc.txt");
+                    String filename = f.getAbsolutePath().replace("\\", "\\\\");
+                    documentDao.saveAll("\'"+filename+"\'");
+                    f.delete();
                     addTermsToDB();
                     count = 0;
-                    batchcounter++;
-                    System.out.println("batch complete, files indexed: "+batchcounter*batchSize );
+                    writer = new BufferedWriter(new FileWriter("doc.txt"));
                 }
             }
         }
         //add the last elements;
+        writer.close();
+        File f = new File("doc.txt");
+        String filename = f.getAbsolutePath().replace("\\", "\\\\");
+        documentDao.saveAll("\'"+filename+"\'");
         addTermsToDB();
         MonetDBIndexingEnd = new Timestamp(System.currentTimeMillis());
+        System.out.println("reading start: " + readingStart.toLocalDateTime().toString());
         System.out.println("lucene start: " + luceneIndexingStart.toLocalDateTime().toString());
         System.out.println("lucene end: " + luceneIndexingEnd.toLocalDateTime().toString());
         System.out.println("monetdb end: " + MonetDBIndexingEnd.toLocalDateTime().toString());
@@ -180,7 +194,7 @@ public class FileService implements IFileService {
     }
 
     private void addTermsToDB() throws IOException {
-        Set<String> dics = dictionaryDao.getAll().stream().map(dictionary -> dictionary.getTerm()).collect(Collectors.toSet());
+        Set<String> dics = dictionaryDao.getAll().parallelStream().map(dictionary -> dictionary.getTerm()).collect(Collectors.toSet());
         List<Dictionary> dicUpdated = terms.parallelStream()
                 .filter(d ->!dics.contains(d.getTerm()))
                 .collect(Collectors.toList());
@@ -205,11 +219,15 @@ public class FileService implements IFileService {
         HashMap<String, Dictionary> dicMap = dictionaryDao.getAllMap();
 
         BufferedWriter writer = new BufferedWriter(new FileWriter("docterms.txt"));
-        for(DocTermTemp d: docTermsTemp) {
+        docTermsTemp.parallelStream().forEach(d -> {
             if(dicMap.get(d.getTerm()) != null ) {
-                writer.write(d.getTermFrequency()  +"|"+d.getDocument().getId()+ "|" +dicMap.get(d.getTerm()).getId() + "\n");
+                try {
+                    writer.write(d.getTermFrequency()  +"|"+d.getDocument().getId()+ "|" +dicMap.get(d.getTerm()).getId() + "\n");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
-        }
+        });
         writer.close();
         File f = new File("docterms.txt");
         String filename = f.getAbsolutePath().replace("\\", "\\\\");

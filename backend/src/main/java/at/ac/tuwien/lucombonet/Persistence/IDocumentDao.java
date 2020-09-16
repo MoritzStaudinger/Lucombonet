@@ -20,4 +20,8 @@ public interface IDocumentDao {
     Doc markAsDeleted(Doc d, Version v);
 
     List<SearchResultInt> findByTermsBM25Version(List<String> terms,Long version, Integer resultnumber);
+
+    void saveAll(String filename);
+
+    Long getMaxId();
 }

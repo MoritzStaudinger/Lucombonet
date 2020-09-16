@@ -30,3 +30,4 @@ build/
 ### VS Code ###
 .vscode/
 dewiki_changed.xml
+snippet_*
