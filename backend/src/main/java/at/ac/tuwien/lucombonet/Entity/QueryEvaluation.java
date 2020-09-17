@@ -21,7 +21,6 @@ import java.util.List;
 public class QueryEvaluation {
     String query;
     boolean correct;
-    long readingTime;
     List<SearchResultInt> luceneResults;
     long queryTimeLucene;
     public List<SearchResultInt> monetResults;

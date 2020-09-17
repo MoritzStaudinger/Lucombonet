@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -176,12 +177,18 @@ public class FileService implements IFileService {
         File f = new File("doc.txt");
         String filename = f.getAbsolutePath().replace("\\", "\\\\");
         documentDao.saveAll("\'"+filename+"\'");
+        f.delete();
         addTermsToDB();
         MonetDBIndexingEnd = new Timestamp(System.currentTimeMillis());
-        System.out.println("reading start: " + readingStart.toLocalDateTime().toString());
-        System.out.println("lucene start: " + luceneIndexingStart.toLocalDateTime().toString());
-        System.out.println("lucene end: " + luceneIndexingEnd.toLocalDateTime().toString());
-        System.out.println("monetdb end: " + MonetDBIndexingEnd.toLocalDateTime().toString());
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("reading start: " + readingStart.toLocalDateTime().toString() +"\n");
+        sb.append("lucene start: " + luceneIndexingStart.toLocalDateTime().toString()+"\n");
+        sb.append("lucene end: " + luceneIndexingEnd.toLocalDateTime().toString()+"\n");
+        sb.append("lucene time: " + (luceneIndexingEnd.getTime() - luceneIndexingStart.getTime())+"\n");
+        sb.append("monetdb end: " + MonetDBIndexingEnd.toLocalDateTime().toString()+"\n");
+        sb.append("monetdb time: " + (MonetDBIndexingEnd.getTime() - luceneIndexingEnd.getTime())+"\n\n");
+        Files.write(Paths.get("results/indexing.txt"), sb.toString().getBytes(), StandardOpenOption.APPEND);
     }
 
     private void addToBatch(Doc dc, Terms termVector) throws IOException {

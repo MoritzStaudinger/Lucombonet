@@ -20,9 +20,10 @@ import java.util.List;
 @AllArgsConstructor
 public class BatchEvaluation {
 
+    boolean correct;
     double avgDiff;
     double maxDiff;
-    Timestamp avgQueryTimeLucene;
-    Timestamp avgQueryTimeMonet;
+    long avgQueryTimeLucene;
+    long avgQueryTimeMonet;
     public List<QueryEvaluation> queryEvaluations;
 }

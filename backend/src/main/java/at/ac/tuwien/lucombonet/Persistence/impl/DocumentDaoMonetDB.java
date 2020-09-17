@@ -185,7 +185,6 @@ public class DocumentDaoMonetDB implements IDocumentDao {
                 " ORDER BY score desc, scoring.name desc LIMIT ?;\n" +
                 " ", inSql );
 
-        System.out.println(sql);
         PreparedStatement statement = null;
         List<SearchResultInt> results = new ArrayList<>();
         try{

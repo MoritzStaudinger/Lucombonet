@@ -1,9 +1,8 @@
 package at.ac.tuwien.lucombonet.Endpoint;
 
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResultInt;
-import at.ac.tuwien.lucombonet.Entity.Version;
+import at.ac.tuwien.lucombonet.Entity.BatchEvaluation;
 import at.ac.tuwien.lucombonet.Service.ISearchService;
-import at.ac.tuwien.lucombonet.Service.Implementation.SearchService;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -42,7 +41,7 @@ public class SearchEndpoint {
     @GetMapping("/searchMariaDB")
     public List<SearchResultInt> searchMariaDB(@RequestParam String searchstring, @RequestParam Integer resultnumber) {
         try {
-            return searchService.searchMariaDB(searchstring, resultnumber);
+            return searchService.searchMonetDB(searchstring, resultnumber);
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -77,7 +76,18 @@ public class SearchEndpoint {
     @GetMapping("/searchVersion")
     public List<SearchResultInt> searchVersion(@RequestParam String searchstring, @RequestParam Integer resultnumber, @RequestParam Long version) {
         try {
-            return searchService.searchMariaDBVersioned(searchstring, version, resultnumber);
+            return searchService.searchMonetDBVersioned(searchstring, version, resultnumber);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @GetMapping("/searchEvaluation")
+    public BatchEvaluation searchEvaluation() {
+        try {
+            return searchService.batchEvaluations("Wordlists/word_1.txt", 0);
         }
         catch (Exception e) {
             e.printStackTrace();
