@@ -1,0 +1,182 @@
+reading start: 2020-09-20T02:25:04.699
+lucene start: 2020-09-20T02:25:11.087
+lucene end: 2020-09-20T02:26:30.046
+lucene time: 78959
+monetdb end: 2020-09-20T02:28:38.356
+monetdb time: 128310
+
+reading start: 2020-09-20T02:28:38.359
+lucene start: 2020-09-20T02:28:42.269
+lucene end: 2020-09-20T02:33:23.549
+lucene time: 281280
+monetdb end: 2020-09-20T02:35:21.868
+monetdb time: 118319
+
+reading start: 2020-09-20T02:35:21.869
+lucene start: 2020-09-20T02:35:25.435
+lucene end: 2020-09-20T02:41:01.304
+lucene time: 335869
+monetdb end: 2020-09-20T02:43:05.188
+monetdb time: 123884
+
+reading start: 2020-09-20T02:43:05.189
+lucene start: 2020-09-20T02:43:08.232
+lucene end: 2020-09-20T02:51:17.460
+lucene time: 489228
+monetdb end: 2020-09-20T02:53:24.541
+monetdb time: 127081
+
+reading start: 2020-09-20T02:53:24.593
+lucene start: 2020-09-20T02:53:27.323
+lucene end: 2020-09-20T03:03:16.693
+lucene time: 589370
+monetdb end: 2020-09-20T03:05:23.514
+monetdb time: 126821
+
+reading start: 2020-09-20T03:05:23.515
+lucene start: 2020-09-20T03:05:25.974
+lucene end: 2020-09-20T03:16:47.460
+lucene time: 681486
+monetdb end: 2020-09-20T03:18:59.817
+monetdb time: 132357
+
+reading start: 2020-09-20T03:18:59.817
+lucene start: 2020-09-20T03:19:02.008
+lucene end: 2020-09-20T03:31:22.691
+lucene time: 740683
+monetdb end: 2020-09-20T03:33:36.345
+monetdb time: 133654
+
+reading start: 2020-09-20T03:33:36.345
+lucene start: 2020-09-20T03:33:38.645
+lucene end: 2020-09-20T03:45:41.269
+lucene time: 722624
+monetdb end: 2020-09-20T03:47:55.908
+monetdb time: 134639
+
+reading start: 2020-09-20T03:47:55.909
+lucene start: 2020-09-20T03:47:58.311
+lucene end: 2020-09-20T03:59:46.745
+lucene time: 708434
+monetdb end: 2020-09-20T04:02:03.907
+monetdb time: 137162
+
+reading start: 2020-09-20T04:02:03.907
+lucene start: 2020-09-20T04:02:05.963
+lucene end: 2020-09-20T04:14:31.666
+lucene time: 745703
+monetdb end: 2020-09-20T04:16:48.612
+monetdb time: 136946
+
+reading start: 2020-09-20T04:16:48.612
+lucene start: 2020-09-20T04:16:50.784
+lucene end: 2020-09-20T04:29:47.852
+lucene time: 777068
+monetdb end: 2020-09-20T04:34:05.851
+monetdb time: 257999
+
+reading start: 2020-09-20T04:34:05.852
+lucene start: 2020-09-20T04:34:07.898
+lucene end: 2020-09-20T04:46:56.118
+lucene time: 768220
+monetdb end: 2020-09-20T04:51:34.815
+monetdb time: 278697
+
+reading start: 2020-09-20T04:51:34.815
+lucene start: 2020-09-20T04:51:36.972
+lucene end: 2020-09-20T05:04:56.366
+lucene time: 799394
+monetdb end: 2020-09-20T05:09:43.713
+monetdb time: 287347
+
+reading start: 2020-09-20T05:59:18.399
+lucene start: 2020-09-20T05:59:20.039
+lucene end: 2020-09-20T06:13:38.403
+lucene time: 858364
+monetdb end: 2020-09-20T06:18:40.281
+monetdb time: 301878
+
+reading start: 2020-09-20T07:59:06.136
+lucene start: 2020-09-20T07:59:08.224
+lucene end: 2020-09-20T08:13:50.986
+lucene time: 882762
+monetdb end: 2020-09-20T08:19:07.261
+monetdb time: 316275
+
+reading start: 2020-09-20T10:05:09.173
+lucene start: 2020-09-20T10:05:11.373
+lucene end: 2020-09-20T10:21:00.041
+lucene time: 948668
+monetdb end: 2020-09-20T10:27:02.094
+monetdb time: 362053
+
+reading start: 2020-09-20T12:15:16.103
+lucene start: 2020-09-20T12:15:18.892
+lucene end: 2020-09-20T12:28:47.247
+lucene time: 808355
+monetdb end: 2020-09-20T12:34:46.717
+monetdb time: 359470
+
+reading start: 2020-09-20T14:28:04.544
+lucene start: 2020-09-20T14:28:06.958
+lucene end: 2020-09-20T14:41:19.066
+lucene time: 792108
+monetdb end: 2020-09-20T14:47:32.837
+monetdb time: 373771
+
+reading start: 2020-09-20T16:31:22.780
+lucene start: 2020-09-20T16:31:24.780
+lucene end: 2020-09-20T16:44:39.373
+lucene time: 794593
+monetdb end: 2020-09-20T16:51:01.802
+monetdb time: 382429
+
+reading start: 2020-09-20T18:39:07.863
+lucene start: 2020-09-20T18:39:10.021
+lucene end: 2020-09-20T18:52:07.979
+lucene time: 777958
+monetdb end: 2020-09-20T18:58:40.953
+monetdb time: 392974
+
+reading start: 2020-09-20T20:51:57.158
+lucene start: 2020-09-20T20:51:59.150
+lucene end: 2020-09-20T21:05:24.430
+lucene time: 805280
+monetdb end: 2020-09-20T21:12:14.846
+monetdb time: 410416
+
+reading start: 2020-09-20T23:09:23.645
+lucene start: 2020-09-20T23:09:25.941
+lucene end: 2020-09-20T23:23:54.936
+lucene time: 868995
+monetdb end: 2020-09-20T23:30:58.798
+monetdb time: 423862
+
+reading start: 2020-09-21T01:29:42.899
+lucene start: 2020-09-21T01:29:44.654
+lucene end: 2020-09-21T01:44:15.680
+lucene time: 871026
+monetdb end: 2020-09-21T01:51:33.583
+monetdb time: 437903
+
+reading start: 2020-09-21T03:54:29.414
+lucene start: 2020-09-21T03:54:31.369
+lucene end: 2020-09-21T04:07:00.712
+lucene time: 749343
+monetdb end: 2020-09-21T04:14:28.689
+monetdb time: 447977
+
+reading start: 2020-09-21T06:19:33.927
+lucene start: 2020-09-21T06:19:36.608
+lucene end: 2020-09-21T06:29:28.932
+lucene time: 592324
+monetdb end: 2020-09-21T06:36:40.782
+monetdb time: 431850
+
+reading start: 2020-09-21T08:46:31.436
+lucene start: 2020-09-21T08:46:34.188
+lucene end: 2020-09-21T08:58:56.429
+lucene time: 742241
+monetdb end: 2020-09-21T09:06:37.139
+monetdb time: 460710
+

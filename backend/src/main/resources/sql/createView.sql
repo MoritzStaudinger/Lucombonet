@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS query_table (
 CREATE TABLE IF NOT EXISTS doc (
   id bigint AUTO_INCREMENT,
   approximated_length bigint ,
-  hash varchar(255),
+  wiki_id varchar(255),
   length bigint ,
   name varchar(200),
   added_id bigint,

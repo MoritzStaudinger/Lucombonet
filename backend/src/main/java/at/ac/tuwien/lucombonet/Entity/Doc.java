@@ -26,7 +26,7 @@ public class Doc {
 
     private String name;
 
-    private String hash;
+    private String wiki_id;
 
     private Long approximatedLength;
 

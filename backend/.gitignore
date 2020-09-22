@@ -31,3 +31,7 @@ build/
 .vscode/
 dewiki_changed.xml
 snippet_*
+dewiki*
+Wordlists/word*
+
+Lucene/*

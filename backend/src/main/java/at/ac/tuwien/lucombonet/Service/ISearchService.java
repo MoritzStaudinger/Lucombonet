@@ -11,7 +11,7 @@ import java.util.List;
 public interface ISearchService {
 
     List<SearchResultInt> searchLuceneContent(String query, int resultnumber) throws IOException, ParseException;
-    List<SearchResultInt> searchLuceneTitleHash(String query) throws IOException, ParseException;
+    List<SearchResultInt> searchLuceneWikiId(String query) throws IOException, ParseException;
 
     List<SearchResultInt> searchMonetDB(String query, int resultnumber) throws ParseException;
 

@@ -72,13 +72,13 @@ public class EvaluationService implements IEvaluationService {
 
     @Override
     public void evaluate() throws IOException, ParseException {
-        createRandomWords();
+        //createRandomWords();
         for (int i = 0; i < 26; i++) {
-            fileService.createIndex("snippet_"+i);
-            searchService.batchEvaluations("Wordlists/word_1.txt", i);
-            searchService.batchEvaluations("Wordlists/word_2.txt", i);
-            searchService.batchEvaluations("Wordlists/word_5.txt", i);
-            searchService.batchEvaluations("Wordlists/word_10.txt", i);
+            fileService.createIndex("snippet_" + i);
+                searchService.batchEvaluations("Wordlists/word_1.txt", i);
+                searchService.batchEvaluations("Wordlists/word_2.txt", i);
+                searchService.batchEvaluations("Wordlists/word_5.txt", i);
+                searchService.batchEvaluations("Wordlists/word_10.txt", i);
             System.out.println("Batch nr.:" + i+" completed");
         }
     }

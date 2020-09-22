@@ -9,11 +9,11 @@ import java.util.List;
 public interface IDocumentDao {
 
 
-    Doc findByHash(String hash);
+    Doc findByWikiId(String id);
 
     Doc getOneById(Long id);
 
-    Doc getByHashAndVersion(Doc d);
+    Doc getByIdAndVersion(Doc d);
 
     Doc save(Doc d);
 

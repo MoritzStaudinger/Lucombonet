@@ -2,7 +2,6 @@ package at.ac.tuwien.lucombonet.Persistence.impl;
 
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResult;
 import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResultInt;
-import at.ac.tuwien.lucombonet.Entity.Dictionary;
 import at.ac.tuwien.lucombonet.Entity.Doc;
 import at.ac.tuwien.lucombonet.Entity.Version;
 import at.ac.tuwien.lucombonet.Persistence.IDocumentDao;
@@ -18,7 +17,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Profile("mariadb")
@@ -53,7 +51,7 @@ public class DocumentDao implements IDocumentDao {
     }
 
     @Override
-    public Doc findByHash(String hash) {
+    public Doc findByWikiId(String hash) {
         String sql = "SELECT * from doc where hash = ? AND removed_id is null";
         PreparedStatement statement = null;
         Doc doc = null;
@@ -93,13 +91,13 @@ public class DocumentDao implements IDocumentDao {
     }
 
     @Override
-    public Doc getByHashAndVersion(Doc d) {
-        String sql = "SELECT * FROM doc WHERE hash = ? AND added_id = ?";
+    public Doc getByIdAndVersion(Doc d) {
+        String sql = "SELECT * FROM doc WHERE wiki_id = ? AND added_id = ?";
         PreparedStatement statement = null;
         Doc doc = null;
         try{
             statement = dbConnectionManager.getConnection().prepareStatement(sql);
-            statement.setString(1, d.getHash());
+            statement.setString(1, d.getWiki_id());
             statement.setLong(2, d.getAdded().getId());
             ResultSet result = statement.executeQuery();
             while (result.next()) {
@@ -115,17 +113,17 @@ public class DocumentDao implements IDocumentDao {
 
     @Override
     public Doc save(Doc d) {
-        String sql = "INSERT INTO doc(approximated_length, hash, length, name, added_id) VALUES (?,?,?,?,?)" ;
+        String sql = "INSERT INTO doc(approximated_length, wiki_id, length, name, added_id) VALUES (?,?,?,?,?)" ;
         PreparedStatement statement = null;
         try {
             statement = dbConnectionManager.getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             statement.setLong(1, d.getApproximatedLength());
-            statement.setString(2, d.getHash());
+            statement.setString(2, d.getWiki_id());
             statement.setLong(3, d.getLength());
             statement.setString(4,d.getName());
             statement.setLong(5,d.getAdded().getId());
             statement.execute();
-            return getByHashAndVersion(d);
+            return getByIdAndVersion(d);
         } catch(SQLException e) {
             e.printStackTrace();
         } catch(PersistenceException e) {
@@ -137,13 +135,13 @@ public class DocumentDao implements IDocumentDao {
 
     @Override
     public Doc markAsDeleted(Doc d, Version v) {
-        String sql = "UPDATE doc SET removed_id = ? WHERE added_id = ? AND hash = ?" ;
+        String sql = "UPDATE doc SET removed_id = ? WHERE added_id = ? AND wiki_id = ?" ;
         PreparedStatement statement = null;
         try {
             statement = dbConnectionManager.getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             statement.setLong(1, v.getId());
             statement.setLong(2, d.getAdded().getId());
-            statement.setString(3, d.getHash());
+            statement.setString(3, d.getWiki_id());
             statement.execute();
             ResultSet result = statement.getGeneratedKeys();
             long i = 0;

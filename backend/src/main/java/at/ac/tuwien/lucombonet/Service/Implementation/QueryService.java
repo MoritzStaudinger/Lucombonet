@@ -2,7 +2,6 @@ package at.ac.tuwien.lucombonet.Service.Implementation;
 
 import at.ac.tuwien.lucombonet.Entity.QueryTable;
 import at.ac.tuwien.lucombonet.Persistence.IQueryDao;
-import at.ac.tuwien.lucombonet.Repository.QueryRepository;
 import at.ac.tuwien.lucombonet.Service.IQueryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

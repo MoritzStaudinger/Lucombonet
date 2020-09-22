@@ -25,9 +25,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -66,25 +64,27 @@ public class SearchService implements ISearchService {
             //System.out.println(luceneConfig.getSearcher().explain(q.parse(query), i));
             results.add(SearchResult.builder().name(d.get("title")).score((double)hits[i].score).engine("Lucene").build());
         }
+        results.sort(Comparator.comparing(SearchResultInt::getScore).reversed().thenComparing(SearchResultInt::getName));
         return results;
     }
 
+    @Deprecated
     @Override
-    public List<SearchResultInt> searchLuceneTitleHash(String query) throws IOException, ParseException {
+    public List<SearchResultInt> searchLuceneWikiId(String query) throws IOException, ParseException {
         luceneConfig.setReader(DirectoryReader.open(luceneConfig.getIndexDirectory()));
         luceneConfig.setSearcher(new IndexSearcher(luceneConfig.getReader()));
 
-        QueryParser q = new QueryParser("hash", luceneConfig.getAnalyzer()); // only on content for reproducibility
+        QueryParser q = new QueryParser("id", luceneConfig.getAnalyzer()); // only on content for reproducibility
         BM25Similarity bm = new BM25Similarity(1.2f, 0.75f);
         luceneConfig.getSearcher().setSimilarity(bm);
 
         TopDocs docs = luceneConfig.getSearcher().search(q.parse(QueryParser.escape(query)), 10);
-        luceneConfig.getWriter().deleteDocuments(q.parse(QueryParser.escape(query)));
         ScoreDoc[] hits = docs.scoreDocs;
         List<SearchResultInt> results = new ArrayList<>();
         for(int i=0;i<hits.length;++i) {
             int docId = hits[i].doc;
             Document d = luceneConfig.getSearcher().doc(docId);
+            luceneConfig.getWriter().tryDeleteDocument(luceneConfig.getReader(),docId);
             results.add(SearchResult.builder().name(d.get("title")).score((double)hits[i].score).build());
         }
         return results;

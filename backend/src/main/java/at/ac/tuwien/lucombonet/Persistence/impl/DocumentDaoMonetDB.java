@@ -36,7 +36,7 @@ public class DocumentDaoMonetDB implements IDocumentDao {
         return new Doc(
                 result.getLong("id"),
                 result.getString("name"),
-                result.getString("hash"),
+                result.getString("wiki_id"),
                 result.getLong("approximated_length"),
                 result.getLong("length"),
                 versionDao.getOneById(result.getLong("added_id")),
@@ -51,13 +51,13 @@ public class DocumentDaoMonetDB implements IDocumentDao {
     }
 
     @Override
-    public Doc findByHash(String hash) {
-        String sql = "SELECT * from doc where hash = ? AND removed_id is null";
+    public Doc findByWikiId(String id) {
+        String sql = "SELECT * from doc where wiki_id = ? AND removed_id is null";
         PreparedStatement statement = null;
         Doc doc = null;
         try{
             statement = dbConnectionManager.getConnection().prepareStatement(sql);
-            statement.setString(1, hash);
+            statement.setString(1, id);
             ResultSet result = statement.executeQuery();
             while (result.next()) {
                 doc = dbResultToDoc(result);
@@ -91,13 +91,13 @@ public class DocumentDaoMonetDB implements IDocumentDao {
     }
 
     @Override
-    public Doc getByHashAndVersion(Doc d) {
+    public Doc getByIdAndVersion(Doc d) {
         String sql = "SELECT * FROM doc WHERE hash = ? AND added_id = ?";
         PreparedStatement statement = null;
         Doc doc = null;
         try{
             statement = dbConnectionManager.getConnection().prepareStatement(sql);
-            statement.setString(1, d.getHash());
+            statement.setString(1, d.getWiki_id());
             statement.setLong(2, d.getAdded().getId());
             ResultSet result = statement.executeQuery();
             while (result.next()) {
@@ -118,12 +118,12 @@ public class DocumentDaoMonetDB implements IDocumentDao {
         try {
             statement = dbConnectionManager.getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             statement.setLong(1, d.getApproximatedLength());
-            statement.setString(2, d.getHash());
+            statement.setString(2, d.getWiki_id());
             statement.setLong(3, d.getLength());
             statement.setString(4,d.getName());
             statement.setLong(5,d.getAdded().getId());
             statement.execute();
-            return getByHashAndVersion(d);
+            return getByIdAndVersion(d);
         } catch(SQLException e) {
             e.printStackTrace();
         } catch(PersistenceException e) {
@@ -135,13 +135,13 @@ public class DocumentDaoMonetDB implements IDocumentDao {
 
     @Override
     public Doc markAsDeleted(Doc d, Version v) {
-        String sql = "UPDATE doc SET removed_id = ? WHERE added_id = ? AND hash = ?" ;
+        String sql = "UPDATE doc SET removed_id = ? WHERE added_id = ? AND wiki_id like ?" ;
         PreparedStatement statement = null;
         try {
             statement = dbConnectionManager.getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             statement.setLong(1, v.getId());
             statement.setLong(2, d.getAdded().getId());
-            statement.setString(3, d.getHash());
+            statement.setString(3, d.getWiki_id());
             statement.execute();
             ResultSet result = statement.getGeneratedKeys();
             long i = 0;
@@ -182,7 +182,7 @@ public class DocumentDaoMonetDB implements IDocumentDao {
                 " GROUP BY d.name, di.term, bm25\n" +
                 " ORDER BY bm25 desc ) as scoring\n" +
                 " GROUP BY scoring.name\n" +
-                " ORDER BY score desc, scoring.name desc LIMIT ?;\n" +
+                " ORDER BY score desc, scoring.name LIMIT ?;\n" +
                 " ", inSql );
 
         PreparedStatement statement = null;

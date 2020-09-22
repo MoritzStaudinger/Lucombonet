@@ -1,5 +1,6 @@
 package at.ac.tuwien.lucombonet.Service.Implementation;
 
+import at.ac.tuwien.lucombonet.Endpoint.DTO.SearchResultInt;
 import at.ac.tuwien.lucombonet.Entity.*;
 import at.ac.tuwien.lucombonet.Entity.Dictionary;
 import at.ac.tuwien.lucombonet.Entity.XML.Page;
@@ -11,12 +12,13 @@ import at.ac.tuwien.lucombonet.Persistence.IVersionDao;
 import at.ac.tuwien.lucombonet.Service.IFileService;
 import at.ac.tuwien.lucombonet.Service.ISearchService;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.mysql.cj.x.protobuf.MysqlxDatatypes;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.queryparser.classic.ParseException;
@@ -77,7 +79,7 @@ public class FileService implements IFileService {
     public String createIndex(String docname) throws IOException, ParseException {
         readingStart = new Timestamp(System.currentTimeMillis());
         File f = new File(docname);
-        HashSet<String> newHashes = new HashSet<>();
+        HashSet<String> wikiIds = new HashSet<>();
         if(f.exists()) {
             XmlMapper xmlMapper = new XmlMapper();
             luceneConfig.open();
@@ -86,12 +88,12 @@ public class FileService implements IFileService {
             System.out.println("number of pages: "+wiki.getPages().size());
             luceneIndexingStart = new Timestamp((System.currentTimeMillis()));
             for(Page page: wiki.getPages()) {
-                newHashes.add(indexPageLucene(page));
+                wikiIds.add(indexPageLucene(page));
             }
             luceneConfig.close();
             System.out.println("Index Lucene finished");
             luceneIndexingEnd = new Timestamp(System.currentTimeMillis());
-            indexMariaDB(newHashes);
+            indexMariaDB(wikiIds);
             return "successful";
         }
         System.out.println("error");
@@ -106,15 +108,13 @@ public class FileService implements IFileService {
             luceneConfig.setReader(DirectoryReader.open(luceneConfig.getIndexDirectory()));
             //System.out.println("trying to delete " + page.getTitle() + " - " + page.getTitle().hashCode());
 
-            QueryParser q = new QueryParser("hash", luceneConfig.getAnalyzer());
-            luceneConfig.getWriter().deleteDocuments(q.parse(QueryParser.escape(page.getTitle().hashCode()+"")));
-
-            //List<SearchResultInt> results = searchService.searchLuceneTitleHash(page.getTitle().hashCode()+"");
+            //QueryParser q = new QueryParser("id", luceneConfig.getAnalyzer());
+            //luceneConfig.getWriter().deleteDocuments(q.parse(QueryParser.escape(page.getId()+"")));
         }
         Document document = getDocumentLucene(page);
         //System.out.println("Add " + document.getField("title").stringValue());
-        luceneConfig.getWriter().addDocument(document);
-        return document.getField("hash").stringValue();
+        luceneConfig.getWriter().updateDocument(new Term("id", page.getId()+""),document);
+        return document.getField("id").stringValue();
     }
 
     private Document getDocumentLucene(Page page) {
@@ -124,7 +124,7 @@ public class FileService implements IFileService {
         ft.setStored(true);
         document.add(new Field("content", page.getRevision().getContent(), ft));
         document.add(new Field("title", page.getTitle(), ft));
-        document.add(new Field("hash", ""+page.getTitle().hashCode(), ft));
+        document.add(new Field("id", ""+page.getId(), ft));
         return document;
     }
 
@@ -132,7 +132,7 @@ public class FileService implements IFileService {
      * Initialize the index at the first start
      * @throws IOException
      */
-    private void indexMariaDB(HashSet<String> hashes) throws IOException {
+    private void indexMariaDB(HashSet<String> ids) throws IOException {
         luceneConfig.setReader(DirectoryReader.open(luceneConfig.getIndexDirectory()));
         luceneConfig.setSearcher(new IndexSearcher(luceneConfig.getReader()));
         Version v = versionDao.save(Version.builder().timestamp(new Timestamp(System.currentTimeMillis())).build());
@@ -141,7 +141,7 @@ public class FileService implements IFileService {
         int count = 0;
         for(int i = 0; i < luceneConfig.getReader().maxDoc(); i++) {
             Document doc = luceneConfig.getReader().document(i);
-            if(hashes.contains(doc.getField("hash").stringValue())) {
+            if(ids.contains(doc.getField("id").stringValue())) {
                 Terms termVector = luceneConfig.getSearcher().getIndexReader().getTermVector(i, "content");
                 Long length = 0L;
                 if(termVector != null) {
@@ -149,13 +149,13 @@ public class FileService implements IFileService {
                 }
                 Long approxLength = (long) smallFloat.byte4ToInt(smallFloat.intToByte4(Integer.parseInt(length.toString().trim())));
                 String title = doc.getField("title").stringValue();
-                String hash = doc.getField("hash").stringValue();
-                Doc d = documentDao.findByHash(hash);
+                String wiki_id = doc.getField("id").stringValue();
+                Doc d = documentDao.findByWikiId(wiki_id);
                 if (d != null) {
                     documentDao.markAsDeleted(d, v);
                 }
-                Doc dc = Doc.builder().id(++index).name(title).length(length).approximatedLength(approxLength).added(v).hash(hash).build();
-                writer.write((index) + "|"+dc.getApproximatedLength() + "|"+ dc.getHash() +"|"+ dc.getLength() +"|"+ dc.getName() +"|" +dc.getAdded().getId() + "|" +null +"\n");
+                Doc dc = Doc.builder().id(++index).name(title).length(length).approximatedLength(approxLength).added(v).wiki_id(wiki_id).build();
+                writer.write((index) + "|"+dc.getApproximatedLength() + "|"+ dc.getWiki_id() +"|"+ dc.getLength() +"|"+ StringEscapeUtils.escapeJava(dc.getName()) +"|" +dc.getAdded().getId() + "|" +null +"\n");
                 if (termVector != null) {
                     addToBatch(dc, termVector);
                 }
